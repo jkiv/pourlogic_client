@@ -3,6 +3,7 @@
 #ifndef KEGBOT_STREAM_UTIL_H
 #define KEGBOT_STREAM_UTIL_H
 
+#include <Arduino.h>
 #include <SPI.h>
 
 //#include "BasicOO.h"

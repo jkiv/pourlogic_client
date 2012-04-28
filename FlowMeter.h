@@ -3,9 +3,8 @@
 #ifndef FLOW_METER_H
 #define FLOW_METER_H
 
-#include <WProgram.h>
-//#include <avr/interrupt.h>
-//#include <SPI.h>
+#include <Arduino.h>
+#include <SPI.h>
 
 #include "config.h"
 

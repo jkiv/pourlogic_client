@@ -3,12 +3,11 @@
 #include "config.h"
 
 // General
-#include <WProgram.h>
-#include <avr/interrupt.h>
-#include <avr/pgmspace.h>
-
-// SPI
+#include <Arduino.h>
 #include <SPI.h>
+//#include <WProgram.h>
+//#include <avr/interrupt.h>
+//#include <avr/pgmspace.h>
 
 // Ethernet
 #include <Client.h>
@@ -20,16 +19,16 @@
 #include <EEPROM.h>
 
 // SD
-//#include <SD.h> // TODO read settings from SD
+//#include <SD.h>
 
 // Strings
 #include <String.h>
 
-// SHA Hashing (https://github.com/Cathedrow/Cryptosuite/)
+// SHA Hashing (https://github.com/jkiv/Cryptosuite/)
 #include <sha256.h>
 
 // PourLogic
-#include "BasicOO.h"
+//#include "BasicOO.h"
 #include "StringConversion.h"
 #include "IPUtil.h"
 #include "StreamUtil.h"
@@ -37,43 +36,29 @@
 #include "ParallaxRFID.h"
 #include "FlowMeter.h"
 #include "Valve.h"
-#include "PiezoPlayer.h"
 #include "PourLogicClient.h"
+//#include "Settings.h" // TODO
 
-static PiezoPlayer piezo;
 static FlowMeter flowMeter;
 static ParallaxRFID rfidReader;
 static Valve valve;
 
-uint16_t fail_melody[] = {NOTE_B2, NOTE_AS2, NOTE_B2, NOTE_AS2, NOTE_B2, NOTE_AS2, NOTE_B2, NOTE_AS2};
-uint8_t fail_beats[] = {1, 1, 1, 1, 1, 1, 1, 1};
-uint8_t fail_length = 8;
-
-uint16_t success_melody[] =   {NOTE_DS3, 0, NOTE_DS3, 0, NOTE_DS3, 0, NOTE_DS3, NOTE_B2, NOTE_CS3, NOTE_DS3, 0, NOTE_CS3, NOTE_DS3};
-uint8_t success_beats[] =  {1, 1, 1, 1, 1, 1, 6, 6, 6, 4, 1, 2, 9};
-uint8_t success_length = 13;
+static byte mac[6] = SETTINGS_ETHERNET_MAC;
 
 //!< Called when failure occurs (i.e. often) 
-void fail(const char* msg = 0)
-{
-  // Print fail msg
-  if (msg)
+void fail(const char* msg = 0) {
+  // Print the fail message
+  if (msg) {
     Serial.println(msg);
-
-  // Play fail music
-  piezo.play_melody(fail_melody, fail_beats, fail_length, 50); 
+  }
 }
 
 //!< Called when success occurs
-void success()
-{
-  // Play success music
-  piezo.play_melody(success_melody, success_beats, success_length, 50);
+void success() {
 }
 
 //!<Setup the PourLogic controller environment and settings
-void setup()
-{   
+void setup() {   
     // Start serial communications
     Serial.begin(ParallaxRFID::RFID_BAUD);
 
@@ -94,26 +79,20 @@ void setup()
     valve.begin(VALVE1_PIN);
     
     // Set up ethernet
-    uint8_t ethernet_mac[] = SETTINGS_ETHERNET_MAC;
-    uint8_t ethernet_ip[] = SETTINGS_ETHERNET_IP;
-    uint8_t ethernet_gateway[] = SETTINGS_ETHERNET_GATEWAY;
-    uint8_t ethernet_subnet[] = SETTINGS_ETHERNET_SUBNET;
-    
-    Ethernet.begin(ethernet_mac,
-                   ethernet_ip,
-                   ethernet_gateway,
-                   ethernet_subnet);
+    while (Ethernet.begin(mac) == 0) {
+      fail("Failed to configure Ethernet using DHCP");
+      delay(5000);  
+    }
     
     // Set up piezo
-    piezo.begin(PIEZO_PIN);
+    //piezo.begin(PIEZO_PIN);
 }
 
 /*! \brief Handle pourlogic day to day operations.
  */
 void loop()
 {
-  ip4 server_ip = SETTINGS_SERVER_IP;
-  PourLogicClient client(server_ip, SETTINGS_SERVER_PORT);
+  PourLogicClient client(SETTINGS_CLIENT_KEY);
   
   uint32_t maxVolume_mL;
   uint32_t volume_mL;
@@ -136,7 +115,7 @@ void loop()
   }
   
   // Request pour
-  if (!client.connect())
+  if (!client.connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT))
   {
     fail("Could not connect to server...");
     return;
@@ -179,7 +158,7 @@ void loop()
   }
   
   // Send pour results
-  if (!client.connect())
+  if (!client.connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT))
   {
     fail("Could not connect to server...");
     return;

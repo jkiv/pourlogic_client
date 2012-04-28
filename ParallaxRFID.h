@@ -3,7 +3,8 @@
 #ifndef KEGBOT_PARALLAX_RFID_H 
 #define KEGBOT_PARALLAX_RFID_H
 
-#include <WProgram.h>
+#include <Arduino.h>
+//#include <WProgram.h>
 #include <String.h>
 
 /*!

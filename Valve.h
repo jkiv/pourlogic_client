@@ -3,7 +3,8 @@
 #ifndef VALVE_H
 #define VALVE_H
 
-#include <WProgram.h>
+#include <Arduino.h>
+//#include <WProgram.h>
 
 /*! \brief Opens (and/or closes) a solenoid valve.
  */

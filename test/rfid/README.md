@@ -1,0 +1,1 @@
+`RFID.ino` is an Arduino program which will read a Parallax RFID card and print the value to serial. This requires the user to copy `ParallaxRFID.cpp` and `ParallaxRFID.h` here.

@@ -3,7 +3,8 @@
 #ifndef STRING_CONVERSION_H
 #define STRING_CONVERSION_H
 
-#include <WProgram.h>
+#include <Arduino.h>
+//#include <WProgram.h>
 #include <String.h>
 
 //!< Parse a String into a signed 32-bit integer

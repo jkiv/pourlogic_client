@@ -1,0 +1,1 @@
+Using the PourLogic authentication scheme, `http_result.py` will build a valid request for a pour result.

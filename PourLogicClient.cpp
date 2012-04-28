@@ -1,5 +1,8 @@
 // See LICENSE.txt for license details.
 
+// TODO -- we might be able to reduce the number of calls to print, sha256.print, etc. somehow.
+//         doing so may improve out memory footprint.
+
 #include "PourLogicClient.h"
 
 // Implementation-specific includes
@@ -18,7 +21,7 @@ static const char HEADER_HOST[] PROGMEM = "Host: ";
 static const char HEADER_CONTENT_TYPE[] PROGMEM = "Content-Type: ";
 static const char HEADER_CONTENT_TYPE_POST[] PROGMEM = "application/x-www-form-urlencoded";
 static const char HEADER_CONTENT_LENGTH[] PROGMEM = "Content-Length: ";
-static const char HEADER_POURLOGIC_USER_AGENT[] PROGMEM = "User-Agent: pourlogic-jkiv/0.1";
+static const char HEADER_POURLOGIC_USER_AGENT[] PROGMEM = "User-Agent: pourlogic-client/1.0";
 static const char HEADER_OTP_AUTH[] PROGMEM = "X-Otp-Auth: ";
 
 static const char HTTP_ENDLINE[] = "\r\n";
@@ -33,15 +36,14 @@ bool PourLogicClient::readHTTPLine(String &line, int maximumBytes)
   return readStreamUntil(this, HTTP_ENDLINE, line, maximumBytes);
 }
 
-PourLogicClient::PourLogicClient(ip4 const &serverIP, uint16_t serverPort)
-    : Client((uint8_t*)serverIP, serverPort)
+PourLogicClient::PourLogicClient(String const &key)
 {
     // Initialize persistent counter
     _otp.begin(0);
     
     // Initialize key
     Sha256.init();
-    Sha256.write(SETTINGS_CLIENT_KEY);
+    Sha256.print(key);
     memcpy(_key, Sha256.result(), 32);
 }
 
@@ -202,36 +204,30 @@ bool PourLogicClient::getPourRequestResponse(uint32_t &maxVolume)
     }
     
     // Read headers
-    
     messageHmac = "";
     
-    while(success = readyOrTimeout(this))
-    {
+    while(success = readyOrTimeout(this)) {
       message = "";
       
-      if (!readHTTPLine(message))
-      {
+      if (!readHTTPLine(message)) {
         success = false;
         break;
       }
 
       // Quit on empty line (i.e. \r\n)
-      if (message.length() == 2)
-      {
+      if (message.length() == 2) {
         success = true;
         break;
       }
 
       // Read AUTH header
-      if (messageHmac.length() == 0)
-      {
+      if (messageHmac.length() == 0) {
         messageHmac = getOTPHeaderHmac(message);
       }
     }
 
-    if (!success)
-    {
-        return false; // Could not read headers
+    if (!success) {
+      return false; // Could not read headers
     }
     
     message = ""; // Clear the message
@@ -239,15 +235,14 @@ bool PourLogicClient::getPourRequestResponse(uint32_t &maxVolume)
     // Read message body
     if (!readyOrTimeout(this))
     {
-        return false;
+      return false;
     }
         
     // .. maxVolume
-    readStreamUntil(this, '\n', message);
+    readStreamUntil(this, "\n", message);
     Sha256.print(message);
     Serial.println(message); // TODO REMOVE
-    
-    message = message.trim();
+    message.trim();
     
     if (message.length() == 0)
     {
@@ -255,7 +250,7 @@ bool PourLogicClient::getPourRequestResponse(uint32_t &maxVolume)
     }
     else
     {
-      if(!stringToUnsigned(message.trim(), maxVolume))
+      if(!stringToUnsigned(message, maxVolume))
       {
         return false;
       }
@@ -411,7 +406,7 @@ bool PourLogicClient::sendPourResult(String const &tagData, uint32_t pourVolume)
 } 
 
 bool PourLogicClient::getPourResultResponse()
-{
+{ 
     const char statusOK[] = "200";
     bool success = true;
 
@@ -472,7 +467,7 @@ bool PourLogicClient::getPourResultResponse()
     // Done reading ..
     stop();
     
-    /* TODO we don't really need auth response?
+    /* TODO fix failure of this
     Sha256.initHmac(_settings.key(), _settings.keySize());
     Sha256.print(getOTPCounter());
     
@@ -511,5 +506,9 @@ String PourLogicClient::getOTPHeaderHmac(String const &message)
     return ""; // No header or HMAC
   }
   
-  return message.substring(otpHeaderHmacStart+1, otpHeaderHmacEnd).trim();
+  // Strip out all but the HMAC
+  String hmac = message.substring(otpHeaderHmacStart+1, otpHeaderHmacEnd);
+  hmac.trim();
+  
+  return hmac;
 }

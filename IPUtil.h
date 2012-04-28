@@ -7,7 +7,8 @@
  * \brief IP utility structures and functions.
  */
  
-#include <WProgram.h>
+#include <Arduino.h>
+//#include <WProgram.h>
 
 //#include <SPI.h>
 //#include <Ethernet.h>

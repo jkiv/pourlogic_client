@@ -3,7 +3,8 @@
 #ifndef KEGBOT_HEX_STRING_H
 #define KEGBOT_HEX_STRING_H
 
-#include <WProgram.h>
+#include <Arduino.h>
+//#include <WProgram.h>
 #include <String.h>
 
 /*! \file HexString.h

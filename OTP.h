@@ -3,7 +3,8 @@
 #ifndef OTP_H
 #define OTP_H
 
-#include <WProgram.h>
+#include <Arduino.h>
+//#include <WProgram.h>
 #include <EEPROM.h>
 //#include <SPI.h>
 

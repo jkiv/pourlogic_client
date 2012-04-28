@@ -35,7 +35,7 @@
 #define SETTINGS_ETHERNET_SUBNET {255, 255, 255, 0}
 
 // .. server info
-#define SETTINGS_SERVER_IP {10, 0, 0, 1}
+#define SETTINGS_SERVER_IP IPAddress(10, 0, 0, 1)
 #define SETTINGS_SERVER_PORT 80
 #define SETTINGS_SERVER_HOSTNAME "pourlogic.com" //!< HTTP hostname
 #define SETTINGS_SERVER_REQUEST_URI "/pours/new/" //!< URI to request when requesting to pour

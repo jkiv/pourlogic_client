@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# (c) 2011 jkiv.ca/client
 
 # Illustrates the creation of an HTTP request using X-OTP-Auth for testing a
 # PourLogic server instance.

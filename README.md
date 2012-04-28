@@ -1,4 +1,11 @@
-# PourLogic Client (Arduino)
+# PourLogic Client (Arduino v1.0 Edition)
+
+## TODO
+
+ * Move to Arduino v1.0
+ * SD card configuration
+ * DHCP
+ * DNS
 
 ## About
 
@@ -12,13 +19,13 @@ server when the patron completes his/her pour.
 ## Hardware Configuration
 
 The PourLogic client interfaces with a number of pieces of hardware.  The
-following is a list of hardware was used in development of the system:
+current version is being developed using the following hardware:
 
  * Arduino Ethernet Shield
  * Parallax RFID Card Reader (serial)
  * Seeedstudio G1/2 Flow Sensor
  * ASCO 8256 Series Solenoid valve (12V, NSF, N.C.)
-
+ 
 ## Software Configuration
 
 Configuration for a PourLogic client instance can be found in config.h.
@@ -28,9 +35,8 @@ Read the information in config.h for configuring your PourLogic client.
 
 ## Compiling/Flashing
 
-As of now, compiling and flashing the Arduino can be done by opening pourlogic-client.pde
-in the Arduino IDE (http://arduino.cc/en/Main/Software) and using the Arduino
-IDE to flash your board.
+As of now, compiling and flashing the Arduino can be done usin the Arduino IDE
+(http://arduino.cc/en/Main/Software) and using the Arduino
 
 ## Third-Party Libraries
 

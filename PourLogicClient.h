@@ -4,11 +4,12 @@
 #include "config.h"
 
 // Interface-specific includes
-#include <WProgram.h>
+#include <Arduino.h>
+//#include <WProgram.h>
 #include <String.h>
 #include <Ethernet.h>
 
-#include "BasicOO.h"
+//#include "BasicOO.h"
 #include "IPUtil.h"
 #include "OTP.h"
 
@@ -48,8 +49,7 @@
  *
  * \brief A Client with some convenience functions for our pourlogic application.
  */
-class PourLogicClient : public Client
-{
+class PourLogicClient : public EthernetClient {
 private:
   byte _key[32]; //!< HMAC secret key
   
@@ -72,7 +72,7 @@ protected:
   OTP _otp;
 
 public:
-  PourLogicClient(const ip4 &serverIP, uint16_t serverPort);
+  PourLogicClient(String const &key);
   ~PourLogicClient();
   
   bool sendPourRequest(String const &tagData); //!< Ask the server for permission to pour
