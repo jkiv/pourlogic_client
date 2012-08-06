@@ -21,10 +21,10 @@ current version is being developed using the following hardware:
  
 ## Software Configuration
 
-Configuration for a PourLogic client instance can be found in config.h.
+Configuration for a PourLogic client instance can be found in `config.h`.
 (Re)Configuring requires a (re)compile/(re)flash of the Arduino.
 
-Read the information in config.h for configuring your PourLogic client.
+Read the information in `config.h` for configuring your PourLogic client.
 
 ## Compiling/Flashing
 
@@ -49,13 +49,11 @@ See LICENSE.txt for copyright information.
 
  * Kegbot project (http://kegbot.org)
  * OhmBase Hackerspace (http://ohmbase.org) :
-
    * Cory Koski
    * Jordan Manary
    * Taylor Moore
    * Chris Riley
    * Kris Scott
    * Bob Naish
-
  * Pete Binsted
  * Ben Zaporzan
