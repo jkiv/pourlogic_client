@@ -39,7 +39,7 @@ In order to successfully compile, you will need to install these libraries.
 Check the Arudino website for more information on how/where to install these
 libraries:
 
- * Cryptosuite (https://github.com/Cathedrow/Cryptosuite/) 
+ * Cryptosuite (https://github.com/jkiv/Cryptosuite/) 
 
 ## License
 
