@@ -1,14 +1,11 @@
 // See LICENSE.txt for license details.
 
-#ifndef KEGBOT_STREAM_UTIL_H
-#define KEGBOT_STREAM_UTIL_H
+#ifndef POURLOGIC_STREAM_UTIL_H
+#define POURLOGIC_STREAM_UTIL_H
 
 #include <Arduino.h>
-#include <SPI.h>
-
-//#include "BasicOO.h"
-#include "Stream.h"
-#include "String.h"
+#include <Stream.h>
+#include <String.h>
 
 /*! \file HTTPUtil.h
  * \brief Utility functions for working with HTTP.
@@ -63,4 +60,4 @@ bool _readStreamWhile(Stream *stream, String const &alphabet, bool whileInAlphab
  */
 bool readyOrTimeout(Stream *stream, unsigned long timeout_ms = 2000);
 
-#endif // #ifndef KEGBOT_HTTP_UTIL_H
+#endif // #ifndef POURLOGIC_STREAM_UTIL_H

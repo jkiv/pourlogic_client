@@ -1,15 +1,13 @@
 // See LICENSE.txt for license details.
 
-#ifndef VALVE_H
-#define VALVE_H
+#ifndef POURLOGIC_VALVE_H
+#define POURLOGIC_VALVE_H
 
 #include <Arduino.h>
-//#include <WProgram.h>
 
 /*! \brief Opens (and/or closes) a solenoid valve.
  */
-class Valve
-{
+class Valve {
   private:
     int _valvePin; //!< The digital pin which controls the valve
     boolean _normallyClosed; //!< Whether HIGH is used to open the valve (true) or LOW (false).
@@ -21,4 +19,4 @@ class Valve
     void close(); //!< Closes the valve
 };
 
-#endif
+#endif // #ifndef POURLOGIC_VALVE_H

@@ -1,16 +1,12 @@
 #ifndef POURLOGIC_CLIENT_H
 #define POURLOGIC_CLIENT_H
 
-#include "config.h"
-
-// Interface-specific includes
 #include <Arduino.h>
-//#include <WProgram.h>
 #include <String.h>
 #include <Ethernet.h>
+#include <sha256.h>
 
-//#include "BasicOO.h"
-#include "IPUtil.h"
+#include "config.h"
 #include "OTP.h"
 
 /*!
@@ -50,11 +46,12 @@
  * \brief A Client with some convenience functions for our pourlogic application.
  */
 class PourLogicClient : public EthernetClient {
-private:
+
+ private:
   byte _key[32]; //!< HMAC secret key
   
-  bool readHTTPLine(String &line);
-  bool readHTTPLine(String &line, int maximumBytes);
+  boolean readHTTPLine(String &line);
+  boolean readHTTPLine(String &line, int maximumBytes);
 
   String getOTPCounter();  //!< Get the value of the OTP counter as a string.
   void incrementOTPCounter(); //!< Increment the value of the OTP counter.
@@ -65,20 +62,32 @@ private:
   
   unsigned long id() { return (unsigned long) SETTINGS_CLIENT_ID; }
   const char* serverHostname() { return SETTINGS_SERVER_HOSTNAME; }
-  const char* requestUri() { return SETTINGS_SERVER_REQUEST_URI; }
-  const char* resultUri() { return SETTINGS_SERVER_RESULT_URI; }
+  const char* requestUri() { return SETTINGS_SERVER_POUR_REQUEST_URI; }
+  const char* resultUri() { return SETTINGS_SERVER_POUR_RESULT_URI; }
   
-protected:
+  void signPourRequest(char* pgmbuffer, String const& tagData, String& hmac); //!< Creates an HMAC for a pour request
+  boolean sendPourRequest(String const &tagData); //!< Ask the server for permission to pour
+  boolean getPourRequestResponse(int &maxVolume); //!< Get the response for a pour request
+  
+  void signPourResult(char* pgmbuffer, String const& tagData, int const& volume_mL, String& hmac);
+  boolean sendPourResult(String const &tagData, const int pourVolume); //!< Inform the server of a pour
+  boolean getPourResultResponse(); //!< Get the response to informing the server of a pour
+  
+  boolean checkResponseStatusLine(const char* expectedStatus);
+  boolean parseResponseHeaders(String& messageHmac);
+  
+  void printXOtpAuthHeader(char* pgmbuffer, int id, unsigned long counter, String const& hmac);
+  boolean parseXOtpAuthHeader(String const& line, String& hmac_result);
+
+ protected:
   OTP _otp;
 
-public:
+ public:
   PourLogicClient(String const &key);
   ~PourLogicClient();
-  
-  bool sendPourRequest(String const &tagData); //!< Ask the server for permission to pour
-  bool getPourRequestResponse(uint32_t &maxVolume); //!< Get the response for a pour request
-  bool sendPourResult(String const &tagData, const uint32_t pourVolume); //!< Inform the server of a pour
-  bool getPourResultResponse(); //!< Get the response to informing the server of a pour
+
+  boolean requestMaxVolume(String const& tagData, int& maxVolume_mL);
+  boolean reportPouredVolume(String const& tagData, int const& volume_mL); //!< Send the result of a pour to the server.
 };
 
-#endif // #ifndef KEGBOT_CLIENT_H
+#endif // #ifndef POURLOGIC_CLIENT_H

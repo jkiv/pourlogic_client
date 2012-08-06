@@ -1,10 +1,9 @@
 // See LICENSE.txt for license details.
 
-#ifndef KEGBOT_PARALLAX_RFID_H 
-#define KEGBOT_PARALLAX_RFID_H
+#ifndef POURLOGIC_PARALLAX_RFID_H 
+#define POURLOGIC_PARALLAX_RFID_H
 
 #include <Arduino.h>
-//#include <WProgram.h>
 #include <String.h>
 
 /*!
@@ -21,24 +20,23 @@
  *
  * \brief A set of convenience functions for reading from a Parallax RFID reader.
  */
-class ParallaxRFID
-{
-public:
-  ParallaxRFID(){}
-  ~ParallaxRFID(){}
-  // Constants 
-  static const char RFID_START = 0x0A; //!< Byte representing the start of the tag data
-  static const char RFID_END = 0x0D; //!< Byte representing the end of the tag data
-  static const int RFID_LENGTH = 10; //!< Length of the RFID tag (16^10 = 1.099511627776E+12 unique IDs)
-  static const long RFID_BAUD = 2400; //!< Baud rate of RFID communication 
+class ParallaxRFID {
+  public:
+    ParallaxRFID(){}
+    ~ParallaxRFID(){}
+    // Constants 
+    static const char RFID_START = 0x0A; //!< Byte representing the start of the tag data
+    static const char RFID_END = 0x0D; //!< Byte representing the end of the tag data
+    static const int RFID_LENGTH = 10; //!< Length of the RFID tag (16^10 = 1.099511627776E+12 unique IDs)
+    static const long RFID_BAUD = 2400; //!< Baud rate of RFID communication
   
-  String readRFID(unsigned long timeout_ms = 0); //!< Reads an RFID tag
-  void enableRFID(); //!< Enables the RFID reader
-  void disableRFID(); //!< Disables the RFID reader
-  void begin(int pinEnable); //!< Sets the pin mode of the \\ENABLE pin (ParallaxRFID#setPinEnable) as OUTPUT and disables the RFID reader
+    boolean readRFID(String& rfid_result, unsigned long timeout_ms = 0); //!< Reads an RFID tag
+    void enableRFID(); //!< Enables the RFID reader
+    void disableRFID(); //!< Disables the RFID reader
+    void begin(int pinEnable); //!< Sets the pin mode of the \\ENABLE pin (ParallaxRFID#setPinEnable) as OUTPUT and disables the RFID reader
   
-private:
-  int _pinEnable; //!< Digital pin connected to /ENABLE
+  private:
+    int _pinEnable; //!< Digital pin connected to /ENABLE
 };
 
-#endif
+#endif // #ifndef POURLOGIC_PARALLAX_RFID_H

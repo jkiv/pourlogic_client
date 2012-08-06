@@ -18,10 +18,14 @@ void Valve::begin(int valvePin, boolean normallyClosed)
 void Valve::open()
 {
   // Open the valve by setting the valve pin LOW
-  if (_normallyClosed)
+  /*if (_normallyClosed) {
     digitalWrite(_valvePin, HIGH);
-  else
+  }
+  else {
     digitalWrite(_valvePin, LOW);
+  }*/
+  
+  digitalWrite(_valvePin, _normallyClosed ? HIGH : LOW);
 }
 
 void Valve::close()

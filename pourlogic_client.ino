@@ -1,73 +1,44 @@
 // See LICENSE.txt for license details.
 
-#include "config.h"
-
 // General
 #include <Arduino.h>
 #include <SPI.h>
-//#include <WProgram.h>
-//#include <avr/interrupt.h>
-//#include <avr/pgmspace.h>
 
 // Ethernet
-#include <Client.h>
+//#include <Client.h>
 #include <Ethernet.h>
-#include <Server.h>
-#include <Udp.h>
-
-// EEPROM
+//#include <Server.h>
+//#include <Udp.h>
 #include <EEPROM.h>
-
-// SD
-//#include <SD.h>
-
-// Strings
 #include <String.h>
-
-// SHA Hashing (https://github.com/jkiv/Cryptosuite/)
-#include <sha256.h>
+#include <sha256.h> // SHA Hashing (https://github.com/jkiv/Cryptosuite/)
 
 // PourLogic
-//#include "BasicOO.h"
-#include "StringConversion.h"
-#include "IPUtil.h"
+#include "config.h"
+#include "pin_config.h"
+
 #include "StreamUtil.h"
 #include "HexString.h"
 #include "ParallaxRFID.h"
 #include "FlowMeter.h"
 #include "Valve.h"
 #include "PourLogicClient.h"
-//#include "Settings.h" // TODO
 
 static FlowMeter flowMeter;
 static ParallaxRFID rfidReader;
 static Valve valve;
+static PourLogicClient client(SETTINGS_CLIENT_KEY);
 
 static byte mac[6] = SETTINGS_ETHERNET_MAC;
 
-//!< Called when failure occurs (i.e. often) 
-void fail(const char* msg = 0) {
-  // Print the fail message
-  if (msg) {
-    Serial.println(msg);
-  }
-}
-
-//!< Called when success occurs
-void success() {
+void fail(char code) {
+  Serial.print(code);
 }
 
 //!<Setup the PourLogic controller environment and settings
 void setup() {   
     // Start serial communications
     Serial.begin(ParallaxRFID::RFID_BAUD);
-
-    // Initialize SD card
-    //pinMode(SD_REQUIRED_PIN, OUTPUT);
-    //SD.begin(SD_CS_PIN);
-    
-    // Load pourlogic settings
-    //settings.fromFile("pourlogic.ini");
     
     // Set up RFID reader
     rfidReader.begin(RFID_ENABLE_PIN);
@@ -78,103 +49,55 @@ void setup() {
     // Set up valve
     valve.begin(VALVE1_PIN);
     
+#ifdef SETTINGS_ETHERNET_USE_DHCP
     // Set up ethernet
     while (Ethernet.begin(mac) == 0) {
-      fail("Failed to configure Ethernet using DHCP");
+      Serial.print('.');
       delay(5000);  
     }
-    
-    // Set up piezo
-    //piezo.begin(PIEZO_PIN);
+#else
+    // TODO static IP
+#endif
+
 }
 
 /*! \brief Handle pourlogic day to day operations.
  */
 void loop()
 {
-  PourLogicClient client(SETTINGS_CLIENT_KEY);
-  
-  uint32_t maxVolume_mL;
-  uint32_t volume_mL;
+  int maxVolume_mL;
+  int volume_mL;
   String tagData;
   
   // Wait a second before serving next person
   delay(1000);
-
-  Serial.println("Waiting for RFID...");
   
   // Wait for RFID read
-  tagData = rfidReader.readRFID();
-  
-  Serial.println(tagData);
-  
-  if (tagData.length() == 0)
-  {
-    fail("Bad RFID.");
-    return;
+  if (!rfidReader.readRFID(tagData)) {
+    return; // Read failed
   }
   
-  // Request pour
-  if (!client.connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT))
-  {
-    fail("Could not connect to server...");
-    return;
+  // Get the max volume the patron can pour
+  if (!client.requestMaxVolume(tagData, maxVolume_mL)) {
+    return; // Request failed
   }
   
-  if (!client.sendPourRequest(tagData))
-  {
-    fail("Pour request failed (send).");
-    return;
+  // Can the patron pour at all?
+  if (maxVolume_mL == 0) {
+    return; // The user cannot pour
   }
-  
-  if (!client.getPourRequestResponse(maxVolume_mL))
-  {
-    fail("Pour request failed (recv).");
-    return;
-  }
-  
-  client.stop();
   
   // Open valve
   valve.open();
   
   // Start reading flow meter
   volume_mL = flowMeter.readVolume_mL(maxVolume_mL);
-
-  Serial.print("Poured: ");
-  Serial.print(volume_mL);
-  Serial.println(" mL");
-  
-  success();
   
   // Close valve
   valve.close();
 
-  // Don't send 0 volume
-  if (volume_mL == 0)
-  {
-    fail("Poured zero volume.");
-    return;
+  // Report pour volume
+  if (volume_mL > 0) {
+    client.reportPouredVolume(tagData, volume_mL);
   }
-  
-  // Send pour results
-  if (!client.connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT))
-  {
-    fail("Could not connect to server...");
-    return;
-  }
-  
-  if (!client.sendPourResult(tagData, volume_mL))
-  {
-    fail("Could not send pour result (send)");
-    return;
-  }
-  
-  if (!client.getPourResultResponse())
-  {
-    fail("Could not send pour result (recv)");
-    return;
-  }
-  
-  client.stop();
 }
