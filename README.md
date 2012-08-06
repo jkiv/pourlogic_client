@@ -1,12 +1,5 @@
 # PourLogic Client (Arduino v1.0 Edition)
 
-## TODO
-
- * Move to Arduino v1.0
- * SD card configuration
- * DHCP
- * DNS
-
 ## About
 
 The PourLogic client controls access to a keg. The client relies on a server.
