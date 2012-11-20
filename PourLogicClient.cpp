@@ -10,6 +10,7 @@
 #include "HexString.h"
 
 // Strings in program memory to conserve RAM
+/*
 static const byte PGM_BUFFER_SIZE = 256; //!< Must be larger (+1) than any of the PROGMEM strings
 
 static const char HTTP_STATUS_GET[]          PROGMEM = "GET ";
@@ -27,6 +28,7 @@ static const char POUR_RESULT_URI[]          PROGMEM = SETTINGS_SERVER_POUR_RESU
 static const char POUR_RESULT_PARAM_1[]      PROGMEM = "u=";
 static const char POUR_RESULT_PARAM_2[]      PROGMEM = "&v=";
 static const char HTTP_STATUS_OK[]           PROGMEM = "200";
+*/
 
 static const int MAX_LINE_SIZE   = 256;    //!< Limit to an HTTP line
 static const char HTTP_ENDLINE[] = "\r\n";
@@ -37,6 +39,97 @@ boolean PourLogicClient::readHTTPLine(String &line) {
 
 boolean PourLogicClient::readHTTPLine(String &line, int maximumBytes) {
   return readStreamUntil(this, HTTP_ENDLINE, line, maximumBytes);
+}
+
+//!< Prints the start of an HTTP status line. Separated out since it is duplicated among requests.
+unsigned long PourLogicClient::sendStatusLineHeadGet(Print *target) {
+  return target->print(F("GET "));
+}
+
+//!< Prints the start of an HTTP status line. Separated out since it is duplicated among requests.
+unsigned long PourLogicClient::sendStatusLineHeadPost(Print *target) {
+  return target->print(F("POST "));
+}
+
+//!< Prints the ending of an HTTP status line. Separated out since it is duplicated among requests.
+unsigned long PourLogicClient::sendStatusLineTail(Print *target) {
+  return target->print(F(" HTTP/1.1"));
+}
+
+unsigned long PourLogicClient::sendPourRequestStatusLine(String const& rfid, Print *target) {
+  unsigned long bytes_sent = 0;
+
+  bytes_sent += sendStatusLineHeadGet(target);
+  bytes_sent += target->print(F(SETTINGS_SERVER_POUR_REQUEST_URI "?" CLIENT_POUR_REQUEST_PARAM_RFID "="));
+  bytes_sent += target->print(rfid); // TODO hash rfid?
+  bytes_sent += sendStatusLineTail(target);
+  
+  return bytes_sent;
+}
+
+//!< Prints the ending of an HTTP line. Separated out since it is duplicated among requests.
+unsigned long PourLogicClient::sendHTTPEndline(Print *target) {
+  return target->print(F("\r\n"));
+}
+
+unsigned long PourLogicClient::sendPourResultStatusLine(Print *target) {
+  unsigned long bytes_sent = 0;
+  
+  bytes_sent += sendStatusLineHeadGet(target);
+  bytes_sent += target->print(F(SETTINGS_SERVER_POUR_RESULT_URI));
+  bytes_sent += sendStatusLineTail(target);
+  bytes_sent += sendHTTPEndline(target);
+  
+  return bytes_sent;
+}
+
+unsigned long PourLogicClient::sendPourResultMessageBody(String const& rfid, float volume_in_mL, Print *target) {
+  unsigned long bytes_sent = 0;
+  
+  bytes_sent += target->print(F(CLIENT_POUR_RESULT_PARAM_RFID "="));
+  bytes_sent += target->print(rfid);
+  bytes_sent += target->print(F("&" CLIENT_POUR_RESULT_PARAM_VOLUME "="));
+  bytes_sent += target->print(volume_in_mL);
+  
+  return bytes_sent;
+}
+
+void PourLogicClient::sendHostHeader() {
+  print(F("Host: "));
+  sendHTTPEndline(this);
+}
+
+void PourLogicClient::sendUserAgentHeader() {
+  print("User-Agent: " CLIENT_USER_AGENT);
+  sendHTTPEndline(this);
+}
+
+void PourLogicClient::sendContentTypePostHeader() {
+  print(F("Content-Type: application/x-www-form-urlencoded"));
+  sendHTTPEndline(this);
+}
+
+void PourLogicClient::sendContentLengthHeader(unsigned long content_length) {
+  // FIXME unsigned long?
+  print(F("Content-Length: "));
+  print(content_length);
+  sendHTTPEndline(this);
+}
+
+void PourLogicClient::sendXPourLogicAuthHeader(int bot_id, unsigned long counter, String const& HMAC) {
+  print(F("X-PourLogic-Auth: "));
+  print(bot_id);
+  print(F(":"));
+  print(counter);
+  print(F(":"));
+  print(HMAC);
+  sendHTTPEndline(this);
+}
+
+void PourLogicClient::initializeAuthHMAC() {
+  // Initialize OTP for this request
+  _otp.increment();
+  Sha256.initHmac(key(), keySize());
 }
 
 PourLogicClient::PourLogicClient(String const &key)
@@ -54,134 +147,60 @@ PourLogicClient::~PourLogicClient() {
   stop();
 }
 
-void PourLogicClient::printXOtpAuthHeader(char* pgmbuffer, int id, unsigned long counter, String const& hmac) {
-  strncpy_P(pgmbuffer, HEADER_X_OTP_AUTH, PGM_BUFFER_SIZE);
-  print(pgmbuffer);
-  
-  print(id);
-  print(':');
-  print(counter);
-  print(':');
-  print(hmac);
-  
-  strncpy_P(pgmbuffer, HTTP_ENDLINE, PGM_BUFFER_SIZE);
-  print(pgmbuffer);
-}
-
-/*!
- * Signs a pour request. Returns HMAC via String& hmac.
- * Hashes:
- * <pre>
- *   COUNT\n
- *   QUERY_STRING\n
- * </pre>
- */
-void PourLogicClient::signPourRequest(char* pgmbuffer, String const& tagData, String& hmac) {
-  Sha256.initHmac(key(), keySize());
-  
-  // COUNTER\n
-  Sha256.println(_otp.count());
-  
-  // QUERY_STRING\n
-  strcpy_P(pgmbuffer, POUR_REQUEST_PARAM_1);
-  Sha256.print(pgmbuffer);
-  Sha256.println(tagData);
-  
-  hmac = bytesToHexString(Sha256.resultHmac(), keySize());
-}
-
-/*!
- * Signs a pour result.
- * Hashes:
- * <pre>
- *   COUNT\n
- *   QUERY_STRING\n
- * </pre>
- */
-void PourLogicClient::signPourResult(char* pgmbuffer, String const& tagData, int const& volume_mL, String& hmac) {
-  Sha256.initHmac(key(), keySize());
-  
-  // COUNTER\n
-  Sha256.println(_otp.count());
-  
-  // QUERY_STRING\n
-  strcpy_P(pgmbuffer, POUR_REQUEST_PARAM_1);
-  Sha256.print(pgmbuffer);
-  Sha256.println(tagData);
-  
-  strcpy_P(pgmbuffer, POUR_RESULT_PARAM_2);
-  Sha256.print(pgmbuffer);
-  Sha256.println(volume_mL);
-  
-  hmac = bytesToHexString(Sha256.resultHmac(), keySize());
-}
-
 /*! A pour request is an HTTP GET request with the following parameters:
- *   - keg ID (k)
  *   - user's RFID tag data (u)
  *
- * The HTTP request must also include the X-Otp-Auth header
- * whose HMAC is the result of hashing the OTP counter, the request method
- * and the query string (everything after the ? in the URI), and the message
- * body separated by newlines:
+ * The HTTP request must also include the X-PourLogic-Auth header in the
+ * following format:
+ *
+ *   X-PourLogic-Auth: ID:COUNTER:HMAC
+ *
+ * where ID is the client's id, COUNTER is the OTP counter, and HMAC is
+ * the result of hashing the request data in the following form:
  *
  * <pre>
  *   COUNTER\n
- *   METHOD\n
- *   [QUERY STRING]\n
+ *   REQUEST LINE\n
  *   [MESSAGE BODY]
  * </pre>
  *
- * QUERY STRING and MESSAGE BODY are optional if they don't exit.  However,
- * the newline at the end of QUERY STRING should be included even if there
- * is no query string.
+ * MESSAGE BODY may be empty. If it is empty, then REQUEST LINE should
+ * still end in a newline.
  */
 boolean PourLogicClient::sendPourRequest(String const &tagData) {
-    // Initialize PROGMEM string buffer
-    char buffer[PGM_BUFFER_SIZE];
-    buffer[PGM_BUFFER_SIZE-1] = '\0';
-    String hmac;
+    // Initialize HMAC
+    initializeAuthHMAC();
     
-    // Initialize OTP for this request
-	//   (new request warrants a new token)
-    _otp.increment();
+    // -- Feed HMAC digest --
+    Sha256.println(_otp.count());                  // COUNTER\n
+    sendStatusLineHeadGet(&Sha256);                // REQUEST LINE\n
+    sendPourRequestStatusLine(tagData, &Sha256);
+    sendStatusLineTail(&Sha256);
+    Sha256.println();
+    // no body
     
-    // Sign message
-    signPourRequest(buffer, tagData, hmac);
+    // -- done HMAC
     
-    // HTTP status line
-    strcpy_P(buffer, HTTP_STATUS_GET);
-    print(buffer);
-    strcpy_P(buffer, POUR_REQUEST_URI);
-    print(buffer);
+    // Send request to server --
     
-    strcpy_P(buffer, POUR_REQUEST_PARAM_1);
-    print(buffer);
-    print(tagData);
-    
-    strcpy_P(buffer, HTTP_REQUEST_LINE_TAIL);
-    print(buffer);
-    print(HTTP_ENDLINE);
-    // -- Status line done
-    
-    // We would construct and hash the message body before the headers so
-    // we can send X-Otp-Auth, but alas it is an empty body, so we omit it.
+    // Status/Request line
+    sendStatusLineHeadGet(this);
+    sendPourRequestStatusLine(tagData, this);   
+    sendStatusLineTail(this);
+    sendHTTPEndline(this);
     
     // HTTP headers
-    // .. Host
-    strcpy_P(buffer, HEADER_HOST);
-    print(buffer);
+    sendHostHeader();
+    sendUserAgentHeader();
+    sendXPourLogicAuthHeader(id(), (unsigned long) _otp.count(), bytesToHexString(Sha256.resultHmac(), keySize()));
+    sendContentLengthHeader(0);
+    sendHTTPEndline(this);
+    sendHTTPEndline(this);
     
-    // .. User-Agent
-    strcpy_P(buffer, HEADER_USER_AGENT);
-    print(buffer);
+    // Message Body
+    // .. empty
     
-    // ... X-OTP-AUTH
-    printXOtpAuthHeader(buffer, id(), (unsigned long) _otp.count(), hmac);
-    
-    // Empty body
-    strcpy_P(buffer, HTTP_ENDLINE);
-    print(buffer);
+    // -- done sending request 
     
     return true;
 }
@@ -193,8 +212,8 @@ boolean PourLogicClient::sendPourRequest(String const &tagData) {
  *
  * MAX VOLUME is a integer in ASCII representation.
  *
- * The HTTP response must also include the X-Otp-Auth header to verify
- * that the response is from the previous request.  The HMAC provided
+ * The HTTP response includes the X-PourLogic-Auth header to verify
+ * that the response is from the previous request. The HMAC provided
  * is the keyed hash of the following:
  *
  * <pre>
@@ -221,268 +240,74 @@ boolean PourLogicClient::getPourRequestResponse(int& maxVolume)
     // Read message body
     // .. maxVolume
     maxVolume = parseInt();
-    
-    // Close connection
-    stop();
 	
     // Verify HMAC
     Sha256.initHmac(key(), keySize());
-    Sha256.print((unsigned long) _otp.count());      // server should have the same count (not provided in response)
-    Sha256.print('\n');
-    Sha256.print(HTTP_STATUS_OK);
-    Sha256.print('\n');
-    Sha256.print(maxVolume);
-    Sha256.print('\n');
+    Sha256.println((unsigned long) _otp.count());      // server should have the same count (not provided in response)
+    Sha256.println(HTTP_STATUS_OK);
+    Sha256.println(maxVolume);
 	
     return bytesToHexString(Sha256.resultHmac(), keySize()).equalsIgnoreCase(messageHmac);
 }
-/*
-boolean PourLogicClient::getPourRequestResponse(int &maxVolume)
-{
-    const int MAX_MESSAGE_SIZE = 256; // Limit to the response size
-    const char statusOK[] = "200";
-    
-    String message;
-    String messageHmac;
-    
-    // Begin HMAC now so we can HMAC while we parse
-    Sha256.initHmac(key(), keySize());
-    Sha256.print((unsigned long) _otp.count());
-    Sha256.print('\n');
-    
-    ////// Read status line
-    
-    if (!readHTTPLine(message, MAX_MESSAGE_SIZE)) {
-      return false; // Could not read status line
-    }
-    
-    ////// Verify status line
-    
-    if (message.indexOf(statusOK) < 0) {
-        return false;
-    }
-    
-    Sha256.print(statusOK);
-    
-    ////// Read headers
-    
-    messageHmac = "";
-    
-    for(;;) {
-      
-      // Read the next HTTP line
-      message = "";
-      if (!readHTTPLine(message, MAX_MESSAGE_SIZE)) {
-        return false; // could not read line
-      }
-
-      // Check headers
-      // .. Quit on empty line (i.e. \r\n)
-      if (message.startsWith(HTTP_ENDLINE)) {
-        break;
-      }
-      
-      // .. grab the response HMAC
-      if (messageHmac.startsWith(HEADER_OTP_AUTH)) {
-        messageHmac = getOTPHeaderHmac(message);
-      }
-    }
-
-    ////// Read message body
-    
-    message = "";
-     
-    // .. maxVolume
-    if (!readStreamUntil(this, "\n", message, MAX_MESSAGE_SIZE)) {
-      return false;
-    }
-    
-    message.trim();
-    
-    // .. maxVolume - validate
-    if (message.length() == 0) {
-      return false;
-    }
-    
-    // .. maxVolume - convert to correct type
-    if (!stringToUnsigned(message, maxVolume)) {
-      return false;
-    }
-    
-    // .. maxVolume - add to HMAC
-    Sha256.print(message);
-    
-    ////// Verify HMAC
-    
-    if (!bytesToHexString(Sha256.resultHmac(), keySize()).equalsIgnoreCase(messageHmac)) {
-      return false;
-    }
-    
-    // Close connection
-    stop();
-    
-    return true;
-}
-*/
-
 
 /*! A pour result is an HTTP POST request with the following parameters:
- *   - keg ID (k)
  *   - user's RFID tag data (u)
  *   - the volume of the pour (v)
  *
- * The HTTP request must also include the X-OTP-AUTH header
- * whose HMAC is the result of hashing the OTP counter, the request method
- * and the query string (everything after the ? in the URI), and the message
- * body separated by newlines:
+ * The HTTP request must also include the X-PourLogic-Auth header in the
+ * following format:
+ *
+ *   X-PourLogic-Auth: ID:COUNTER:HMAC
+ *
+ * where ID is the client's id, COUNTER is the OTP counter, and HMAC is
+ * the result of hashing the request data in the following form:
  *
  * <pre>
  *   COUNTER\n
- *   METHOD\n
- *   [QUERY STRING]\n
+ *   REQUEST LINE\n
  *   [MESSAGE BODY]
  * </pre>
  *
- * QUERY STRING and MESSAGE BODY are optional if they don't exit.  However,
- * the newline at the end of QUERY STRING should be included even if there
- * is no query string.
+ * MESSAGE BODY may be empty. If it is empty, then REQUEST LINE should
+ * still end in a newline.
  *
  */
-boolean PourLogicClient::sendPourResult(String const &tagData, int pourVolume)
+boolean PourLogicClient::sendPourResult(String const &tagData, float pourVolume)
 {
-    // Initialize PROGMEM string buffer
-    char buffer[PGM_BUFFER_SIZE];
-    buffer[PGM_BUFFER_SIZE-1] = '\0';
-    String hmac;
-    int contentLength = 0;
+    int content_length = 0;
     
-    // Initialize OTP for this request
-    _otp.increment(); // new request warrants a new token
+    // Initialize HMAC
+    initializeAuthHMAC();
     
-    // We create HMAC in its own step, duplicating a lot of
-    // strcpy_P... but this is also so we can calculate the
-    // content length for the 'Content Length' header.
-
-    // Create HMAC
-    signPourResult(buffer, tagData, pourVolume, hmac);
+    // -- Feed HMAC digest --
+    content_length += Sha256.println(_otp.count());
+    content_length += sendStatusLineHeadGet(&Sha256);
+    content_length += sendPourResultStatusLine(&Sha256);
+    content_length += sendStatusLineTail(&Sha256);
+    content_length += Sha256.println();
+    content_length += sendPourResultBody(tagData, pourVolume, &Sha256);
+    // -- done HMAC
     
-    // Request line
-    strcpy_P(buffer, HTTP_STATUS_POST);
-    print(buffer);
+    // Send request to server --
+    // Status/Request line
+    sendStatusLineHeadGet(this);
+    sendPourResultStatusLine(this);
+    sendStatusLineTail(this);
+    sendHTTPEndline(this);
     
-    strcpy_P(buffer, POUR_RESULT_URI);
-    print(buffer);
+    // HTTP headers
+    sendHostHeader();
+    sendUserAgentHeader();
+    sendXPourLogicAuthHeader(id(), (unsigned long) _otp.count(), bytesToHexString(Sha256.resultHmac(), keySize()));
+    sendContentLengthHeader(content_length); // includes sendHTTPEndline
+    sendHTTPEndline(this);
     
-    strcpy_P(buffer, HTTP_REQUEST_LINE_TAIL);
-    print(buffer);
-
-    // Headers
-    // .. Host
-    strcpy_P(buffer, HEADER_HOST);
-    print(buffer);
+    // Message Body
+    sendPourResultBody(tagData, pourVolume, this);
+    // -- done sending request 
     
-    // .. User-Agent
-    strcpy_P(buffer, HEADER_USER_AGENT);
-    print(buffer);
-    
-    // .. X-Otp-Auth
-    printXOtpAuthHeader(buffer, id(), (unsigned long) _otp.count(), hmac);
-    
-    // .. Content-Type
-    strcpy_P(buffer, HEADER_CONTENT_TYPE_POST);
-    print(buffer);
-    
-    // .. Content-Length
-    contentLength += 2 + tagData.length(); // u= ...
-    contentLength += 3 + String(pourVolume).length(); // &v= ...
-    
-    strcpy_P(buffer, HEADER_CONTENT_LENGTH);
-    print(buffer);
-    print(contentLength);
-    strcpy_P(buffer, HTTP_ENDLINE);
-    print(buffer);
-    print(buffer);
-
-    // Body
-    strcpy_P(buffer, POUR_RESULT_PARAM_1);
-    print(buffer);
-    print(tagData);
-    
-    strcpy_P(buffer, POUR_RESULT_PARAM_2);
-    print(buffer);
-    print(pourVolume);
-
     return true;
 } 
-
-/*
-boolean PourLogicClient::getPourResultResponse()
-{ 
-  // TODO -- this function is a lot like the other response, only it doesn't handle the message body... HINT?
-    const int MAX_MESSAGE_SIZE = 256; // Limit to the response size
-    const char statusOK[] = "200";
-    
-    String message;
-    String messageHmac;
-    
-    // Begin HMAC now so we can HMAC while we parse
-    Sha256.initHmac(key(), keySize());
-    Sha256.print((unsigned long) _otp.count());
-    Sha256.print('\n');
-    
-    ////// Read status line
-
-    if (!readHTTPLine(message, MAX_MESSAGE_SIZE)) {
-      return false; // Could not read status line
-    }
-    
-    ////// Verify status line
-    
-    if (message.indexOf(statusOK) < 0) {
-        return false;
-    }
-    
-    Sha256.print(statusOK);
-    
-    ////// Read headers
-    
-    messageHmac = "";
-    
-    for(;;) {
-      
-      // Read the next HTTP line
-      message = "";
-      if (!readHTTPLine(message, MAX_MESSAGE_SIZE)) {
-        return false;
-      }
-
-      // Check headers
-      // .. Quit on empty line (i.e. \r\n)
-      if (message.startsWith(HTTP_ENDLINE)) {
-        break;
-      }
-      
-      // .. grab the response HMAC
-      if (messageHmac.startsWith(HEADER_OTP_AUTH)) {
-        messageHmac = getOTPHeaderHmac(message);
-      }
-    }
-
-    ////// Read message body
-    // (No message body)
-    
-    ////// Verify HMAC
-    
-    if (!bytesToHexString(Sha256.resultHmac(), keySize()).equalsIgnoreCase(messageHmac)) {
-      return false;
-    }
-    
-    // Close connection
-    stop();
-    
-    return true;
-}
-*/
 
 boolean PourLogicClient::getPourResultResponse()
 { 
@@ -498,9 +323,6 @@ boolean PourLogicClient::getPourResultResponse()
 
     // Read message body
     //   (No message body)
-    
-    // Close connection
-    stop();
 	
     // Verify HMAC
     Sha256.initHmac(key(), keySize());
@@ -516,9 +338,8 @@ boolean PourLogicClient::getPourResultResponse()
 
 /*!
  * Grab the HMAC from an X-Otp-Auth header line
- * TODO -- counter
  */
-boolean PourLogicClient::parseXOtpAuthHeader(String const &line, String &hmac_result) {
+boolean PourLogicClient::parseXPourLogicAuthHeader(String const &line, String &hmac_result) {
   char buffer[13]; // "X-Otp-Auth: " + null
   strcpy_P(buffer, HEADER_X_OTP_AUTH);
   buffer[12] = '\0';
@@ -567,7 +388,7 @@ boolean PourLogicClient::parseResponseHeaders(String &hmac) {
       
     // .. grab the response id, HMAC, and count
     if (line.startsWith(HEADER_X_OTP_AUTH)) {
-      parseXOtpAuthHeader(line, hmac);
+      parseXPourLogicAuthHeader(line, hmac);
     }
   }
   

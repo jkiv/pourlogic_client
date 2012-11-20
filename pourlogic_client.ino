@@ -52,7 +52,6 @@ void setup() {
 #ifdef SETTINGS_ETHERNET_USE_DHCP
     // Set up ethernet
     while (Ethernet.begin(mac) == 0) {
-      Serial.print('.');
       delay(5000);  
     }
 #else
@@ -61,7 +60,7 @@ void setup() {
 
 }
 
-/*! \brief Handle pourlogic day to day operations.
+/*! \brief Handle PourLogic day to day operations.
  */
 void loop()
 {

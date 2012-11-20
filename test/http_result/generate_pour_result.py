@@ -22,7 +22,7 @@ volume = sys.argv[5]
 uri = '/pours/create/'
 method = 'POST'
 query_string = ''
-message_body = 'k={0}&u={1}&v={2}'.format(client_id, drinker_id, volume)
+message_body = 'u={1}&v={2}'.format(client_id, drinker_id, volume)
 
 canonical_string = "{0}\n{1}\n{2}\n{3}".format(count, method, query_string, message_body)
 
