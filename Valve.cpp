@@ -5,6 +5,12 @@
 void Valve::begin(int valvePin, boolean normallyClosed)
 {
   // Set whether or not HIGH is used to open the valve
+  //       | N.C. | N.O.
+  // ------+------+------
+  // OPEN  | HIGH | LOW 
+  // ------+------+------
+  // CLOSE | LOW  | HIGH
+  
   _normallyClosed = normallyClosed;
   
   // Set the output pins for controlling the valve
@@ -17,24 +23,12 @@ void Valve::begin(int valvePin, boolean normallyClosed)
 
 void Valve::open()
 {
-  // Open the valve by setting the valve pin LOW
-  /*if (_normallyClosed) {
-    digitalWrite(_valvePin, HIGH);
-  }
-  else {
-    digitalWrite(_valvePin, LOW);
-  }*/
-  
   digitalWrite(_valvePin, _normallyClosed ? HIGH : LOW);
 }
 
 void Valve::close()
 {
-  // Close the valve by setting the valve pin HIGH
-  if (_normallyClosed)
-    digitalWrite(_valvePin, LOW);
-  else
-    digitalWrite(_valvePin, HIGH);
+  digitalWrite(_valvePin, _normallyClosed ? LOW : HIGH);
 }
   
 Valve::Valve()

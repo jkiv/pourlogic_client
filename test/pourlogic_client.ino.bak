@@ -5,7 +5,10 @@
 #include <SPI.h>
 
 // Ethernet
+//#include <Client.h>
 #include <Ethernet.h>
+//#include <Server.h>
+//#include <Udp.h>
 #include <EEPROM.h>
 #include <String.h>
 #include <sha256.h> // SHA Hashing (https://github.com/jkiv/Cryptosuite/)
@@ -15,24 +18,27 @@
 #include "pin_config.h"
 
 #include "StreamUtil.h"
-#include "HTTPUtil.h"
 #include "HexString.h"
-
-#include "RFID.h"
+#include "ParallaxRFID.h"
 #include "FlowMeter.h"
 #include "Valve.h"
 #include "PourLogicClient.h"
 
 static FlowMeter flowMeter;
-static RFID_EM41000 rfidReader;
+static ParallaxRFID rfidReader;
 static Valve valve;
-static PourLogicClient client(SETTINGS_CLIENT_ID, SETTINGS_CLIENT_KEY);
-static byte mac[6] = SETTINGS_ETHERNET_MAC; // MAC address of ethernet shield
+static PourLogicClient client(SETTINGS_CLIENT_KEY);
+
+static byte mac[6] = SETTINGS_ETHERNET_MAC;
+
+void fail(char code) {
+  Serial.print(code);
+}
 
 //!<Setup the PourLogic controller environment and settings
 void setup() {   
     // Start serial communications
-    Serial.begin(RFID_EM41000::RFID_BAUD);
+    Serial.begin(ParallaxRFID::RFID_BAUD);
     
     // Set up RFID reader
     rfidReader.begin(RFID_ENABLE_PIN);
@@ -44,50 +50,53 @@ void setup() {
     valve.begin(VALVE1_PIN);
     
 #ifdef SETTINGS_ETHERNET_USE_DHCP
+    // Set up ethernet
     while (Ethernet.begin(mac) == 0) {
-      delay(1000);
+      delay(5000);  
     }
 #else
-    Ethernet.begin(mac, SETTINGS_ETHERNET_IP);
+    // TODO static IP
 #endif
 
-  // TODO Grab any settings from the server that might be of interest  
 }
 
 /*! \brief Handle PourLogic day to day operations.
  */
 void loop()
 {
-  int max_volume_in_mL = 0;
-  int poured_volume_in_mL = 0;
-  String tag_data;
+  int maxVolume_mL;
+  int volume_mL;
+  String tagData;
   
-  // Wait for RFID
-  if (!rfidReader.readRFID(tag_data)) {
-    return; // RFID read timed-out or failed.
+  // Wait a second before serving next person
+  delay(1000);
+  
+  // Wait for RFID read
+  if (!rfidReader.readRFID(tagData)) {
+    return; // Read failed
   }
   
   // Get the max volume the patron can pour
-  if (!client.requestMaxVolume(tag_data, max_volume_in_mL)) {
+  if (!client.requestMaxVolume(tagData, maxVolume_mL)) {
     return; // Request failed
   }
   
-  // Can the patron pour?
-  if (max_volume_in_mL == 0) {
-    return; // The patron cannot pour
+  // Can the patron pour at all?
+  if (maxVolume_mL == 0) {
+    return; // The user cannot pour
   }
   
   // Open valve
   valve.open();
   
-  // Read flow meter
-  poured_volume_in_mL = flowMeter.readVolume_mL(max_volume_in_mL);
+  // Start reading flow meter
+  volume_mL = flowMeter.readVolume_mL(maxVolume_mL);
   
   // Close valve
   valve.close();
-  
-  // Send pour data to be logged on the server
-  if (poured_volume_in_mL > 0) {
-    client.reportPouredVolume(tag_data, poured_volume_in_mL);
+
+  // Report pour volume
+  if (volume_mL > 0) {
+    client.reportPouredVolume(tagData, volume_mL);
   }
 }

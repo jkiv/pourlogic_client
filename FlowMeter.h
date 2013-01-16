@@ -7,11 +7,19 @@
 #include "config.h"
 
 /*! \brief Manages a flow meter who pulses on a digital input pin during flow.
+ *  This class provides an interface to an interupt-based flow meter where the
+ *  frequency of the pulses can be converted to a volumetric flow rate. This
+ *  volumetric flow rate is then integrated to provide a volume.
+ *
+ *  Written for the G1/2 flow sensor from seeedstudio.com (POW110D3B) but
+ *  should work with other interrupt-based flow meters.
+ *
+ *  *** 
  *
  *  We use a flow meter for determining the total volume that flowed
- *  during an arbitrary interval. To determine the flow rate, numerical
- *  integration must be employed. However, for the total volume, the
- *  math involved is much simpler. The total volume is proportional to
+ *  during an arbitrary interval. To determine the volumetric flow rate,
+ *  numerical mehods must be employed. However, for the total volume,
+ *  the math involved is much simpler. The total volume is proportional to
  *  the number of pulses counted. See #calibrate for more details.
  *
  *  Calibrating your flow meter is recommended. Do this by allowing
@@ -23,6 +31,11 @@
  * 
  *  You can run this calibration a number of times to find the average
  *  value (if you're feeling so keen).
+ *
+ *  In the future, calibration can be performed and the pulse count will
+ *  either be displayed on an LCD (if memory permits) or sent to the
+ *  server where it can be combined with the poured volume to find k where
+ *  it can then be (down-)synched on, say, startup.
  *
  *  \see #calibrate
  *  \see http://www.seeedstudio.com/depot/g12-water-flow-sensor-p-635.html

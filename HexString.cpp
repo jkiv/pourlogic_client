@@ -2,19 +2,19 @@
 
 #include "HexString.h"
 
-static const char ALPHABET[] PROGMEM = "0123456789abcef";
+static const char ALPHABET[] PROGMEM = "0123456789abcdef";
 
 String bytesToHexString(const byte *bytes, int length) {
     char alphabet[17];
-    alphabet[16] = '\0';
     strcpy_P(alphabet, ALPHABET);
+    alphabet[16] = '\0';
     
     String hexString = "";
     if (length <= 0) return hexString;
 
     for (int i = 0; i < length; i++) {
-        hexString += alphabet[bytes[i]>>4];
-        hexString += alphabet[bytes[i]&0xf];
+      hexString += alphabet[bytes[i]>>4];
+      hexString += alphabet[bytes[i]&0x0f];
     }
     
     return hexString;

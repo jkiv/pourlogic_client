@@ -47,7 +47,7 @@ See LICENSE.txt for copyright information.
 
 ## Acknowledgements
 
- * Kegbot project (http://kegbot.org)
+ * Kegbot (http://kegbot.org) for the inspiration
  * OhmBase Hackerspace (http://ohmbase.org) :
    * Cory Koski
    * Jordan Manary

@@ -2,7 +2,7 @@
 
 #include "StreamUtil.h"
 
-bool readStreamUntil(Stream *stream, String const &pattern, String &body, int maximumBytes) {
+bool readStreamUntil(Stream* stream, String const &pattern, String &body, int maximumBytes) {
   if (!stream) {
     return false;
   }
@@ -15,7 +15,7 @@ bool readStreamUntil(Stream *stream, String const &pattern, String &body, int ma
  
   if (pattern.length() <= 0) return true;
   
-  while (readyOrTimeout(stream) && !matched && (maximumBytes <= 0 || bytesRead < maximumBytes)) {
+  while (waitForAvailable(stream) && !matched && (maximumBytes <= 0 || bytesRead < maximumBytes)) {
     c = stream->read(); // read byte from stream
 
     body.concat(c); // append character to string
@@ -34,7 +34,7 @@ bool readStreamUntil(Stream *stream, String const &pattern, String &body, int ma
   return matched;
 }
 
-bool readStreamUntil(Stream *stream, String const &pattern) {
+bool readStreamUntil(Stream* stream, String const &pattern) {
   if (!stream) return false;
   
   bool matched = false;
@@ -46,7 +46,7 @@ bool readStreamUntil(Stream *stream, String const &pattern) {
     return true;
   }
   
-  while (readyOrTimeout(stream) && !matched) {
+  while (waitForAvailable(stream) && !matched) {
     c = stream->read();
     
     if (c == pattern.charAt(matchCount)) {
@@ -63,7 +63,7 @@ bool readStreamUntil(Stream *stream, String const &pattern) {
 }
 
 
-bool readyOrTimeout(Stream *stream, unsigned long timeout_ms) {
+bool waitForAvailable(Stream* stream, unsigned long timeout_ms) {
   unsigned long startTime = millis();
   
   while (!stream->available()) {
@@ -75,23 +75,23 @@ bool readyOrTimeout(Stream *stream, unsigned long timeout_ms) {
   return true;
 }
 
-bool readStreamWhileIn(Stream *stream, String const &alphabet) {
+bool readStreamWhileIn(Stream* stream, String const &alphabet) {
   return _readStreamWhile(stream, alphabet, true);
 }
 
-bool readStreamWhileIn(Stream *stream, String const &alphabet, String &body, int maximumBytes) {
+bool readStreamWhileIn(Stream* stream, String const &alphabet, String &body, int maximumBytes) {
   return _readStreamWhile(stream, alphabet, true, body, maximumBytes);
 }
 
-bool readStreamWhileNotIn(Stream *stream, String const &alphabet) {
+bool readStreamWhileNotIn(Stream* stream, String const &alphabet) {
   return _readStreamWhile(stream, alphabet, false);
 }
 
-bool readStreamWhileNotIn(Stream *stream, String const &alphabet, String &body, int maximumBytes) {
+bool readStreamWhileNotIn(Stream* stream, String const &alphabet, String &body, int maximumBytes) {
   return _readStreamWhile(stream, alphabet, false, body, maximumBytes);
 }
 
-bool _readStreamWhile(Stream *stream, String const &alphabet, bool whileInAlphabet) {
+bool _readStreamWhile(Stream* stream, String const &alphabet, bool whileInAlphabet) {
   if (!stream) {
     return false;
   }
@@ -103,7 +103,7 @@ bool _readStreamWhile(Stream *stream, String const &alphabet, bool whileInAlphab
   char c = '\0';
   bool isInAlphabet = false;
   
-  while (readyOrTimeout(stream)) {
+  while (waitForAvailable(stream)) {
     c = stream->peek(); // peek byte from stream
 
     isInAlphabet = false;
@@ -127,7 +127,7 @@ bool _readStreamWhile(Stream *stream, String const &alphabet, bool whileInAlphab
   return false;
 }
 
-bool _readStreamWhile(Stream *stream, String const &alphabet, bool whileInAlphabet, String &body, int maximumBytes) {
+bool _readStreamWhile(Stream* stream, String const &alphabet, bool whileInAlphabet, String &body, int maximumBytes) {
   if (!stream) {
     return false;
   }
@@ -139,7 +139,7 @@ bool _readStreamWhile(Stream *stream, String const &alphabet, bool whileInAlphab
   char c = '\0';
   bool isInAlphabet = false;
   
-  while (readyOrTimeout(stream)) {
+  while (waitForAvailable(stream)) {
     c = stream->peek(); // peek byte from stream
 
     isInAlphabet = false;

@@ -1,8 +1,8 @@
 // See LICENSE.txt for license details.
 
-#include "ParallaxRFID.h"
+#include "RFID.h"
 
-boolean ParallaxRFID::readRFID(String& rfid_result, unsigned long timeout_ms) { 
+boolean RFID_EM41000::readRFID(String& rfid_result, unsigned long timeout_ms) { 
   unsigned long startTime = millis();
   int bytesRead = -1;
   char tagByte = '\0';
@@ -59,17 +59,17 @@ boolean ParallaxRFID::readRFID(String& rfid_result, unsigned long timeout_ms) {
   
 }
 
-void ParallaxRFID::enableRFID()
+void RFID_EM41000::enableRFID()
 {
   digitalWrite(_pinEnable, LOW);
 }
 
-void ParallaxRFID::disableRFID()
+void RFID_EM41000::disableRFID()
 {
   digitalWrite(_pinEnable, HIGH);
 }
 
-void ParallaxRFID::begin(int pinEnable)
+void RFID_EM41000::begin(int pinEnable)
 {
   _pinEnable = pinEnable;
   pinMode(pinEnable,OUTPUT);

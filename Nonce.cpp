@@ -1,8 +1,8 @@
 // See LICENSE.txt for license details.
 
-#include "OTP.h"
+#include "Nonce.h"
 
-void OTP::begin(int baseOffset) {
+void Nonce::begin(int baseOffset) {
   uint8_t *counterBytes = (uint8_t*) &_count;
     
   // Set the base offset in EEPROM
@@ -18,15 +18,15 @@ void OTP::begin(int baseOffset) {
   }
 }
 
-uint32_t OTP::count() {
+uint32_t Nonce::count() {
   return _count;
 }
 
-void OTP::increment() {
+void Nonce::increment() {
   set(_count+1);
 }
 
-void OTP::reload() {
+void Nonce::reload() {
   uint8_t *counterBytes = (uint8_t*) &_count;
   
   for (int i = 0; i < sizeof(_count); i++) {
@@ -34,7 +34,7 @@ void OTP::reload() {
   }
 }
 
-void OTP::set(uint32_t newCount) {
+void Nonce::set(uint32_t newCount) {
   uint8_t *counterBytes = (uint8_t*) &_count;
   _count = newCount;
   
@@ -46,6 +46,6 @@ void OTP::set(uint32_t newCount) {
   }
 }
 
-void OTP::unset() {
+void Nonce::unset() {
   EEPROM.write(_baseOffset + INITIALIZED_OFFSET, 255);
 }

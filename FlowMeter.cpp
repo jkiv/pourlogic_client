@@ -2,14 +2,11 @@
 
 #include "FlowMeter.h"
 
-/**
- * Active flow meter instance (only one FlowMeter active at a time)
- * \todo Support for multiple flow meters
+/*! Active flow meter instance (only one FlowMeter active at a time)
  */
 static FlowMeter *activeFlowMeter = NULL;
 
-/**
- * Flow meter interrupt handler. It increments the pulse count on the #activeFlowMeter.
+/*! Flow meter interrupt handler. It increments the pulse count on the #activeFlowMeter.
  */
 void FlowMeter::pulse() {
   if (activeFlowMeter != NULL) {
@@ -135,8 +132,8 @@ float FlowMeter::readVolume_mL(int maxVolume_mL, unsigned long lastPulseTimeout_
  * number of pulses. These two values are used to calculate the
  * pulse-to-volume constant as described below.
  *
- * It can be shown that the volumetric flow rate, Q, is linearly
- * proportional to the pulse frequency, f, of the flow meter:
+ * We assume that the volumetric flow rate, Q, is linearly
+ * proportional (k) to the pulse frequency, f, of the flow meter:
  *
  *                             Q(t) = k*f(t)
  *
@@ -148,7 +145,7 @@ float FlowMeter::readVolume_mL(int maxVolume_mL, unsigned long lastPulseTimeout_
  * the flow interval. The initial volume and counts are zero. Note that
  * the total volume can be determined directly from the number of
  * pulses of the flow meter, regardless of how the flow rate changes
- * during the flow.
+ * during the flow (within operating range of the flow meter, of course).
  * 
  * To calibrate the flow meter, pour out and measure a volume and use
  * the corresponding number of pulses to calculate the conversion factor.
@@ -171,7 +168,7 @@ unsigned long FlowMeter::calibrate(unsigned long pourtime_ms, unsigned long time
   unsigned long timeoutStart_ms = millis();
   unsigned long pulseCount = 0;
   
-  Serial.println("Begin calibration...");
+  //Serial.println("Begin calibration...");
  
   // Attach interrupt on rising flow meter pin
   cli();
@@ -185,7 +182,7 @@ unsigned long FlowMeter::calibrate(unsigned long pourtime_ms, unsigned long time
 
     // Check for timeout
     if ((millis() - timeoutStart_ms) > timeout_ms) {
-      Serial.println("Timeout while waiting for pulse.");
+      //Serial.println("Timeout while waiting for pulse.");
       cli();
       _stopReading();
       return pulseCount;

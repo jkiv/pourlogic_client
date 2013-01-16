@@ -7,16 +7,18 @@
 #include <sha256.h>
 
 #include "config.h"
-#include "OTP.h"
+#include "Nonce.h"
+#include "HTTPUtil.h"
 
 #define CLIENT_POUR_REQUEST_PARAM_RFID "u"
 #define CLIENT_POUR_RESULT_PARAM_RFID "u"
 #define CLIENT_POUR_RESULT_PARAM_VOLUME "v"
 
-#define CLIENT_USER_AGENT  "pourlogic/shield/1.0"       // Arduino Uno + shield
-//#define CLIENT_USER_AGENT  "pourlogic/board/1.0"        // PourLogic all-in-one board
-//#define CLIENT_USER_AGENT  "pourlogic/shield-mega/1.0"  // Arduino Mega + shield
-//#define CLIENT_USER_AGENT  "pourlogic/shield-pi/1.0"    // RaspberryPi + shield
+#define CLIENT_AUTH_HEADER_NAME "X-PourLogic-Auth"
+
+#define SERVER_POUR_REQUEST_URI "/pours/new/"   //!< URI to request when requesting to pour
+#define SERVER_POUR_RESULT_URI "/pours/create/" //!< URI to request when sending result
+#define SERVER_TEST_XAUTH_URI "/test/xauth/"    //!< URI to test X-PourLogic-Auth
 
 /*!
  * At this time there are two different requests:
@@ -52,95 +54,58 @@
  *
  * In our implementation we use an one-time-password scheme that
  * uses a persistent monotonic counter and a pre-shared-key.
- * (see #OTP).
+ * (see #Nonce).
  *
  * \brief A Client with some convenience functions for our pourlogic application.
  */
 class PourLogicClient : public EthernetClient {
 
  private:
-  byte _key[32]; //!< HMAC (effective) secret key
-
-  String getOTPCounter();  //!< Get the value of the OTP counter as a string.
-  void incrementOTPCounter(); //!< Increment the value of the OTP counter.
+  byte _effective_key[32]; //!< HMAC (effective) secret key
+  unsigned long __id;
   
-  const byte* key() { return _key; };
-  uint8_t keySize() { return 32; /* for SHA256 */ };
+  const byte* _key() { return _effective_key; };
+  int _keySize() { return 32; };
+  unsigned long _id() { return __id; }
   
-  unsigned long id() { return (unsigned long) SETTINGS_CLIENT_ID; }
-  const char* serverHostname() { return SETTINGS_SERVER_HOSTNAME; }
-  const char* requestUri() { return SETTINGS_SERVER_POUR_REQUEST_URI; }
-  const char* resultUri() { return SETTINGS_SERVER_POUR_RESULT_URI; }
-  
-    //!< Reads an HTTP line.
-  boolean readHTTPLine(String &line);
-
-  //!< Reads an HTTP line or until `maximumBytes' bytes are read.
-  boolean readHTTPLine(String &line, int maximumBytes);
-
-  //!< Prints the start of an HTTP status line for a GET query. (Separated out since it is duplicated among requests.)
-  unsigned long sendStatusLineHeadGet(Print *target);
-
-  //!< Prints the start of an HTTP status line for a POST query. (Separated out since it is duplicated among requests.)
-  unsigned long sendStatusLineHeadPost(Print *target);
-
-  //!< Prints the ending of an HTTP status line. (Separated out since it is duplicated among requests.)
-  unsigned long sendStatusLineTail(Print *target);
-
-  //!< Prints the ending of an HTTP line. (Separated out since it is duplicated among requests.)
-  unsigned long sendHTTPEndline(Print *target);
-
-  //!< Sends an HTTP request line for a "pour request" query
-  unsigned long sendPourRequestStatusLine(String const& rfid, Print *target);
-
-  //!< Sends an HTTP request line for a "pour result" query
-  unsigned long sendPourResultStatusLine(Print *target);
-
-  //!< Sends a Host header
-  void sendHostHeader();
-
-  //!< Sends a User-Agent header for the PourLogic client
-  void sendUserAgentHeader();
-
-  //!< Sends a Content-Type header for POST queries
-  void sendContentTypePostHeader();
-
-  //!< Sends a Content-Length header
-  void sendContentLengthHeader(unsigned long content_length);
-
-  //!< Sends an X-PourLogic-Auth header
-  void sendXPourLogicAuthHeader(int bot_id, unsigned long counter, String const& HMAC);
-
   //!< Initializes HMAC for client-server authentication.
-  void initializeAuthHMAC();
+  void _initializeAuth();
 
-  //!< Grab the HMAC from an X-Otp-Auth header line
-  boolean parseXPourLogicAuthHeader(String const &line, String &hmac_result);
+  //!< Grab the HMAC from an X-PourLogic-Auth header
+  boolean _parseXPourLogicAuthHeader(String const &line, String &hmac_result);
 
   //!< Parses HTTP server response line and returns whether it contains an expected status.
-  boolean checkResponseStatusLine(const char* expected_status);
+  boolean _checkResponseStatusLine(const char* expected_status);
 
   //!< Parses HTTP headers from server response. Keeps HMAC from X-PourLogic-Auth header.
-  boolean parseResponseHeaders(String &hmac);
-
-  boolean sendPourRequest(String const &tagData);
-  boolean getPourRequestResponse(int& maxVolume);
-  boolean sendPourResult(String const &tagData, float pourVolume);
-  boolean getPourResultResponse();
+  boolean _parseResponseHeaders(String &hmac);
+  
+  unsigned long _printXPourLogicAuthHeader(Print& target); //!< Write out the X-PourLogic-Auth header and data (assuming ready)
+  unsigned long _printPourRequestStatusLine(Print &target, String const& rfid); //!< Write the status line for a "pour request"
+  unsigned long _printPourResultStatusLine(Print &target); //!< Write the status line for a "pour result"
+  unsigned long _printPourResultMessageBody(Print &target, String const& rfid, float volume_in_mL); // Write the "pour result" message body
+  
+  // Request parts ////////////////////////////////////////////////////////////
+  boolean _sendPourRequest(String const &tagData);
+  boolean _getPourRequestResponse(int& maxVolume);
+  boolean _sendPourResult(String const &tagData, float pourVolume);
+  boolean _getPourResultResponse();
 
  protected:
-  OTP _otp;
+  Nonce _nonce;
 
  public:
-  PourLogicClient(String const &key);
+  PourLogicClient(unsigned long api_id, String const& api_private_key);
   ~PourLogicClient();
   
   //!< Request the max. volume for a pour for the user given by tagData.
   boolean requestMaxVolume(String const& tagData, int& maxVolume_mL);
-
+  
   //!< Send the result of a pour to the server.
   boolean reportPouredVolume(String const& tagData, int const& volume_mL);
   
+  // Tests
+  boolean _test_xauth();    // test the client against live HTTP server
 };
 
 #endif // #ifndef POURLOGIC_CLIENT_H
