@@ -39,4 +39,4 @@ class RFID_EM41000 {
     int _pinEnable; //!< Digital pin connected to /ENABLE
 };
 
-#endif // #ifndef POURLOGIC_PARALLAX_RFID_H
+#endif // #ifndef POURLOGIC_RFID_H
