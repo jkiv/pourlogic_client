@@ -1,3 +1,5 @@
+// See LICENSE.txt for license details.
+
 #ifndef HTTP_UTIL_H
 #define HTTP_UTIL_H
 

@@ -1,3 +1,5 @@
+// See LICENSE.txt for license details.
+
 #include "HTTPUtil.h"
 #include "StreamUtil.h"
 

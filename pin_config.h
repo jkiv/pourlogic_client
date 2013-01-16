@@ -1,3 +1,5 @@
+// See LICENSE.txt for license details.
+
 #ifndef POURLOGIC_PIN_CONFIG_H
 #define POURLOGIC_PIN_CONFIG_H
 

@@ -1,3 +1,5 @@
+// See LICENSE.txt for license details.
+
 #ifndef POURLOGIC_CLIENT_H
 #define POURLOGIC_CLIENT_H
 
