@@ -1,13 +1,14 @@
-# PourLogic Client (Arduino v1.0 Edition)
+# PourLogic Client
 
 ## About
 
-The PourLogic client controls access to a keg. The client relies on a server.
-The server is responsible for deciding whether a given patron should be
-served. The client either allows or disallows access to the keg based on
-the server's decision. If a patron is allowed to pour, the server can
-provide a maximum volume. The client will report the served volume to the
-server when the patron completes his/her pour.
+The PourLogic client controls access to a keg. The client relies on a server
+(e.g. https://github.com/jkiv/pourlogic_server). The server is responsible for
+deciding whether a given patron should be served. The client either allows or
+disallows access to the keg based on the server's decision. If a patron is
+allowed to pour, the server can provide a maximum volume. The server is also
+useful for recording pour data. When a pour has taken place, the client will
+report the pour details, such as the served volume, to the server.
 
 ## Hardware Configuration
 
@@ -29,16 +30,14 @@ Read the information in `config.h` for configuring your PourLogic client.
 
 ## Compiling/Flashing
 
-As of now, compiling and flashing the Arduino can be done usin the Arduino IDE
-(http://arduino.cc/en/Main/Software) and using the Arduino
+As of now, compiling and flashing the Arduino can be done using the Arduino IDE
+(http://arduino.cc/en/Main/Software).
 
 ## Third-Party Libraries
 
-The PourLogic client is dependent on some third-party libraries.
-
-In order to successfully compile, you will need to install these libraries.
-Check the Arudino website for more information on how/where to install these
-libraries:
+The PourLogic client is dependent on some third-party libraries. In order to
+successfully compile, you will need to install these libraries. Check the
+Arudino website for more information on how/where to install these libraries:
 
  * Cryptosuite (https://github.com/jkiv/Cryptosuite/) 
 
