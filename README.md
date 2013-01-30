@@ -14,6 +14,7 @@ server when the patron completes his/her pour.
 The PourLogic client interfaces with a number of pieces of hardware.  The
 current version is being developed using the following hardware:
 
+ * PourLogic Arduino Shield (https://github.com/jkiv/pourlogic_board/)
  * Arduino Ethernet Shield
  * Parallax RFID Card Reader (serial)
  * Seeedstudio G1/2 Flow Sensor
