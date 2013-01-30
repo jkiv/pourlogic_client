@@ -1,17 +1,16 @@
 // See LICENSE.txt for license details.
 
-// NOTE -- a lot of this code is messy in order to save RAM and/or time.
-
 #include "PourLogicClient.h"
 #include "StreamUtil.h"
 #include "HexString.h"
+#include "HTTPUtil.h"
 
-static const int MAX_LINE_SIZE = 256;       //!< Length limit to an HTTP line (in bytes)
+#define MAX_LINE_SIZE 256       //!< Length limit to an HTTP line (in bytes)
 static const char HTTP_ENDLINE[] = "\r\n";
 static const char HTTP_STATUS_OK[] = "200";
+static char line_buffer[MAX_LINE_SIZE];
 
-
-PourLogicClient::PourLogicClient(unsigned long api_id, String const& api_private_key)
+PourLogicClient::PourLogicClient(unsigned long api_id, const char* api_private_key)
   : __id(api_id)
 {
   // Initialize timeout
@@ -45,9 +44,10 @@ unsigned long PourLogicClient::_printPourRequestStatusLine(Print &target, String
   unsigned long bytes_sent = 0;
 
   bytes_sent += printStatusLineHeadGet(target);
-  bytes_sent += target.print(F(SERVER_POUR_RESULT_URI "?" CLIENT_POUR_REQUEST_PARAM_RFID "="));
+  bytes_sent += target.print(SERVER_POUR_REQUEST_URI "?" CLIENT_POUR_REQUEST_PARAM_RFID "=");
   bytes_sent += target.print(rfid); // TODO hash rfid?
   bytes_sent += printStatusLineTail(target);
+  //bytes_sent += printHTTPEndline(target);
   
   return bytes_sent;
 }
@@ -56,9 +56,9 @@ unsigned long PourLogicClient::_printPourResultStatusLine(Print& target) {
   unsigned long bytes_sent = 0;
   
   bytes_sent += printStatusLineHeadGet(target);
-  bytes_sent += target.print(F(SERVER_POUR_RESULT_URI));
+  bytes_sent += target.print(SERVER_POUR_RESULT_URI);
   bytes_sent += printStatusLineTail(target);
-  bytes_sent += printHTTPEndline(target);
+  //bytes_sent += printHTTPEndline(target);
   
   return bytes_sent;
 }
@@ -66,9 +66,9 @@ unsigned long PourLogicClient::_printPourResultStatusLine(Print& target) {
 unsigned long PourLogicClient::_printPourResultMessageBody(Print &target, String const& rfid, float volume_in_mL) {
   unsigned long bytes_sent = 0;
   
-  bytes_sent += target.print(F(CLIENT_POUR_RESULT_PARAM_RFID "="));
+  bytes_sent += target.print(CLIENT_POUR_RESULT_PARAM_RFID "=");
   bytes_sent += target.print(rfid);
-  bytes_sent += target.print(F("&" CLIENT_POUR_RESULT_PARAM_VOLUME "="));
+  bytes_sent += target.print("&" CLIENT_POUR_RESULT_PARAM_VOLUME "=");
   bytes_sent += target.print(volume_in_mL);
   
   return bytes_sent;
@@ -85,10 +85,10 @@ void PourLogicClient::_initializeAuth() {
 /*! A pour request is an HTTP GET request with the following parameters:
  *   - user's RFID tag data (u)
  *
- * The HTTP request must also include the X-PourLogic-Auth header in the
+ * The HTTP request must also include the X-Pourlogic-Auth header in the
  * following format:
  *
- *   X-PourLogic-Auth: ID:NONCE:HMAC
+ *   X-Pourlogic-Auth: ID:NONCE:HMAC
  *
  * where ID is the client's id, NONCE is the OTP counter, and HMAC is
  * the result of hashing the request data in the following form:
@@ -107,11 +107,11 @@ boolean PourLogicClient::_sendPourRequest(String const &tagData) {
   _initializeAuth();
   
   // -- Feed HMAC digest --
-  Sha256.print(_nonce.count());                // NONCE\n
+  Sha256.print(_nonce.count());                 // NONCE\n
   Sha256.print('\n');
   _printPourRequestStatusLine(Sha256, tagData); // REQUEST LINE\n
   Sha256.print('\n');
-                                              // empty body
+                                                // empty body
   // -- done "Feed HMAC digest"
   
   // -- Send request to server --
@@ -123,6 +123,7 @@ boolean PourLogicClient::_sendPourRequest(String const &tagData) {
   // HTTP headers
   printHostHeader(*this);
   printUserAgentHeader(*this);
+  printContentLengthHeader(*this, 0);
   _printXPourLogicAuthHeader(*this);
   printHTTPEndline(*this);
   
@@ -138,10 +139,10 @@ boolean PourLogicClient::_sendPourRequest(String const &tagData) {
  *   - user's RFID tag data (u)
  *   - the volume of the pour (v)
  *
- * The HTTP request must also include the X-PourLogic-Auth header in the
+ * The HTTP request must also include the X-Pourlogic-Auth header in the
  * following format:
  *
- *   X-PourLogic-Auth: ID:NONCE:HMAC
+ *   X-Pourlogic-Auth: ID:NONCE:HMAC
  *
  * where ID is the client's id, NONCE is the OTP counter, and HMAC is
  * the result of hashing the request data in the following form:
@@ -160,14 +161,20 @@ boolean PourLogicClient::_sendPourResult(String const &tagData, float pourVolume
 {
   int content_length = 0; // Required for POST request
   
+  Serial.println(F("Sending pour result?"));
+  
+  
+  Serial.println(tagData);
+  Serial.println(pourVolume);
+  
   // Initialize HMAC
   _initializeAuth();
   
   // -- Feed HMAC digest --
-  content_length += Sha256.print(_nonce.count());
-  content_length += Sha256.print('\n');
-  content_length += _printPourResultStatusLine(Sha256);
-  content_length += Sha256.print('\n');
+  Sha256.print(_nonce.count());
+  Sha256.print('\n');
+  _printPourResultStatusLine(Sha256);
+  Sha256.print('\n');
   content_length += _printPourResultMessageBody(Sha256, tagData, pourVolume);
   // -- done HMAC
   
@@ -199,8 +206,8 @@ boolean PourLogicClient::_sendPourResult(String const &tagData, float pourVolume
  *
  * MAX VOLUME is a integer in ASCII representation.
  *
- * The HTTP response includes the X-PourLogic-Auth header to verify
- * that the response is from the server. The value of the X-PourLogic-Atuh
+ * The HTTP response includes the X-Pourlogic-Auth header to verify
+ * that the response is from the server. The value of the X-Pourlogic-Atuh
  * in responses differs from that of requests. The value of the header is 
  * just an HMAC made from the keyed hash of the following:
  *
@@ -210,39 +217,47 @@ boolean PourLogicClient::_sendPourResult(String const &tagData, float pourVolume
  *   RESPONSE BODY
  * </pre>
  */
-boolean PourLogicClient::_getPourRequestResponse(int& maxVolume)
+boolean PourLogicClient::_getPourRequestResponse(int& max_volume_mL)
 { 
-  String messageHmac;
-  maxVolume = 0;
+  String message_hmac;
+  char our_hmac[65];
+  max_volume_mL = 0;
+  our_hmac[64]='\0';
   
   // Handle status line
-  if (!_checkResponseStatusLine("200")) {
+  if (!_checkResponseStatusLine(HTTP_STATUS_OK)) {
+    shutdown();
     return false;
   }
-	
+  
   // Read headers
-  _parseResponseHeaders(messageHmac);
-
+  if (!_parseResponseHeaders(message_hmac)) {
+    shutdown();
+    return false;
+  }
+  
   // Read message body
   // .. maxVolume
-  maxVolume = parseInt();
-	
+  max_volume_mL = parseInt();
+
   // Verify HMAC (server should have same count as us)
   Sha256.initHmac(_key(), _keySize());
-  Sha256.print((unsigned long) _nonce.count()); // nonce
+  Sha256.print(_nonce.count()); // nonce
   Sha256.print('\n');
   Sha256.print(HTTP_STATUS_OK); // HTTP status
   Sha256.print('\n');
-  Sha256.print(maxVolume); // message body
-
-  return bytesToHexString(Sha256.resultHmac(), _keySize()).equalsIgnoreCase(messageHmac);
+  Sha256.print(max_volume_mL); // message body
+  
+  bytesToHexString(our_hmac, Sha256.resultHmac(), _keySize());
+ 
+  return message_hmac.equalsIgnoreCase(our_hmac);
 }
 
 /*! A pour result response verifies that the pour was recorded by responding
  * with a "200 OK".
  *
- * The HTTP response includes the X-PourLogic-Auth header to verify
- * that the response is from the server. The value of the X-PourLogic-Atuh
+ * The HTTP response includes the X-Pourlogic-Auth header to verify
+ * that the response is from the server. The value of the X-Pourlogic-Atuh
  * in responses differs from that of requests. The value of the header is 
  * just an HMAC made from the keyed hash of the following:
  *
@@ -258,18 +273,22 @@ boolean PourLogicClient::_getPourResultResponse()
   
   // Handle status line
   if (!_checkResponseStatusLine(HTTP_STATUS_OK)) {
+    shutdown();
     return false;
   }
 	
   // Read headers
-  _parseResponseHeaders(messageHmac);
+  if (!_parseResponseHeaders(messageHmac)) {
+    shutdown();
+    return false;
+  }
 
   // Read message body
   //   (empty)
 	
   // Verify HMAC (server should have same count as us)
   Sha256.initHmac(_key(), _keySize());
-  Sha256.print((unsigned long) _nonce.count()); // nonce
+  Sha256.print(_nonce.count()); // nonce
   Sha256.print('\n');
   Sha256.print(HTTP_STATUS_OK); // HTTP status
   Sha256.print('\n');
@@ -283,11 +302,12 @@ boolean PourLogicClient::_getPourResultResponse()
  */
 boolean PourLogicClient::_parseXPourLogicAuthHeader(String const &line, String &hmac_result) {
   
-  int otpHeaderStart = line.indexOf((char*)F(CLIENT_AUTH_HEADER_NAME)); // TODO test this
+  int otpHeaderStart = line.indexOf(CLIENT_AUTH_HEADER_NAME); // TODO test this
   int otpHeaderHmacEnd = line.indexOf(HTTP_ENDLINE, otpHeaderStart);
   int otpHeaderHmacStart = line.indexOf(':', otpHeaderStart);
   
   if (otpHeaderStart < 0 || otpHeaderHmacEnd < 0 || otpHeaderHmacStart < 0) {
+    shutdown();
     return false; // No header or HMAC
   }
   
@@ -299,35 +319,33 @@ boolean PourLogicClient::_parseXPourLogicAuthHeader(String const &line, String &
 }
 
 boolean PourLogicClient::_checkResponseStatusLine(const char* expected_status) {
-  String line;
-  
   // Read status line
-  if (!readHTTPLine(*this, line, MAX_LINE_SIZE)) {
+  if (!readHTTPLine(*this, MAX_LINE_SIZE, line_buffer)) {
     return false; // Could not read status line
   }
   
-  return line.indexOf(expected_status) >= 0;
+  return (NULL != strstr(line_buffer, expected_status));
 }
 
 boolean PourLogicClient::_parseResponseHeaders(String &hmac) {
-  String line;
   
   for(;;) {
     // Read the next HTTP line
-    line = "";
-    if (!readHTTPLine(*this, line, MAX_LINE_SIZE)) {
+    line_buffer[0] = '\0';
+    if (!readHTTPLine(*this, MAX_LINE_SIZE, line_buffer)) {
       return false;
     }
 
     // Check headers
     // .. quit on empty line (i.e. \r\n)
-    if (line.startsWith(HTTP_ENDLINE)) {
+    //if (line.startsWith(HTTP_ENDLINE)) {
+    if (strstr(line_buffer, HTTP_ENDLINE) == line_buffer) { // TODO strBeginWith()?
       break;
     }
       
     // .. grab the response id, HMAC, and count
-    if (line.startsWith((char*)F(CLIENT_AUTH_HEADER_NAME))) { // TODO test this
-      _parseXPourLogicAuthHeader(line, hmac);
+    if (strstr(line_buffer, CLIENT_AUTH_HEADER_NAME) == line_buffer) {
+      _parseXPourLogicAuthHeader(line_buffer, hmac);
     }
   }
   
@@ -335,23 +353,69 @@ boolean PourLogicClient::_parseResponseHeaders(String &hmac) {
 }
 
 //!< Request the max. volume for a pour for the user given by tagData.
-boolean PourLogicClient::requestMaxVolume(String const& tagData, int& maxVolume_mL) {
-  maxVolume_mL = 0;
+boolean PourLogicClient::requestMaxVolume(String const& tag_data, int& max_volume_mL) {
+  boolean success = false;
   
   // Request pour
-  return (!connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT) ||
-          !_sendPourRequest(tagData)                         ||
-          !_getPourRequestResponse(maxVolume_mL));
+  success = (connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT) &&
+             _sendPourRequest(tag_data)                        &&
+             _getPourRequestResponse(max_volume_mL));
+  
+  shutdown();
+  return success;
 }
 
 //!< Send the result of a pour to the server.
-boolean PourLogicClient::reportPouredVolume(String const& tagData, int const& volume_mL) {
+boolean PourLogicClient::reportPouredVolume(String const& tag_data, int const& volume_mL) {
+  boolean success = false;
+  
   // Send pour results
-  return (!connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT) ||
-          !_sendPourResult(tagData, volume_mL)               ||
-          !_getPourResultResponse());
+  success = (connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT) &&
+             _sendPourResult(tag_data, volume_mL)              &&
+             _getPourResultResponse());
+
+  shutdown();
+  return success;
 }
 
 boolean PourLogicClient::_test_xauth() {
-  // TODO
+  
+  if (!connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT)) {
+    return false;
+  }
+  
+  // Initialize HMAC
+  _initializeAuth();
+  
+  // -- Feed HMAC digest --
+  Sha256.print(_nonce.count());            // NONCE
+  Sha256.print('\n');
+  printStatusLineHeadGet(Sha256);          // STATUS LINE
+  Sha256.print(F(SERVER_TEST_XAUTH_URI));
+  printStatusLineTail(Sha256);
+  Sha256.print('\n');
+  // empty message body                    // MESSAGE BODY
+  
+  // -- done HMAC
+  
+  // Send request to server --
+  // Status/Request line
+  printStatusLineHeadGet(*this);
+  print(F(SERVER_TEST_XAUTH_URI));
+  printStatusLineTail(*this);
+  printHTTPEndline(*this);
+  
+  // HTTP headers
+  printHostHeader(*this);
+  printUserAgentHeader(*this);
+  _printXPourLogicAuthHeader(*this);
+  printHTTPEndline(*this);
+  // empty message body
+  
+  // TODO response
+}
+
+void PourLogicClient::shutdown() {
+  stop();
+  readUntilUnavailable(this); // flush receive buffer
 }

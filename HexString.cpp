@@ -2,22 +2,30 @@
 
 #include "HexString.h"
 
-static const char ALPHABET[] PROGMEM = "0123456789abcdef";
-
-String bytesToHexString(const byte *bytes, int length) {
-    char alphabet[17];
-    strcpy_P(alphabet, ALPHABET);
-    alphabet[16] = '\0';
-    
+String bytesToHexString(const byte *bytes, int length) {    
     String hexString = "";
     if (length <= 0) return hexString;
 
     for (int i = 0; i < length; i++) {
-      hexString += alphabet[bytes[i]>>4];
-      hexString += alphabet[bytes[i]&0x0f];
+      hexString += "0123456789abcdef"[bytes[i]>>4];
+      hexString += "0123456789abcdef"[bytes[i]&0xf];
     }
     
     return hexString;
+}
+
+void bytesToHexString(char* result_string, const byte *bytes, int length) {    
+    //String hexString = "";
+    result_string[0] = '\0';
+    
+    if (length <= 0) return;
+
+    for (int i = 0; i < length; i++) {
+      result_string[(i<<1)]   = "0123456789abcdef"[bytes[i]>>4];
+      result_string[(i<<1)+1] = "0123456789abcdef"[bytes[i]&0xf];
+    }
+    
+    result_string[length<<1] = '\0';
 }
 
 boolean hexStringToBytes(String const &hexString, byte *buffer, int &resultLength, int maxLength) {

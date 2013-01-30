@@ -33,7 +33,7 @@ static byte mac[6] = SETTINGS_ETHERNET_MAC; // MAC address of ethernet shield
 void setup() {   
     // Start serial communications
     Serial.begin(RFID_EM41000::RFID_BAUD);
-    
+
     // Set up RFID reader
     rfidReader.begin(RFID_ENABLE_PIN);
     
@@ -51,7 +51,7 @@ void setup() {
     Ethernet.begin(mac, SETTINGS_ETHERNET_IP);
 #endif
 
-  // TODO Grab any settings from the server that might be of interest  
+  // TODO Grab any settings from the server that might be of interest
 }
 
 /*! \brief Handle PourLogic day to day operations.
@@ -61,16 +61,23 @@ void loop()
   int max_volume_in_mL = 0;
   int poured_volume_in_mL = 0;
   String tag_data;
+
+  // Restrict loop timing
+  delay(1000);
   
   // Wait for RFID
   if (!rfidReader.readRFID(tag_data)) {
     return; // RFID read timed-out or failed.
   }
   
+  Serial.println(tag_data); // FIXME remove me
+  
   // Get the max volume the patron can pour
   if (!client.requestMaxVolume(tag_data, max_volume_in_mL)) {
     return; // Request failed
   }
+  
+  Serial.println(max_volume_in_mL); // FIXME remove me
   
   // Can the patron pour?
   if (max_volume_in_mL == 0) {
@@ -82,9 +89,11 @@ void loop()
   
   // Read flow meter
   poured_volume_in_mL = flowMeter.readVolume_mL(max_volume_in_mL);
-  
+
   // Close valve
   valve.close();
+  
+  Serial.println(poured_volume_in_mL); // FIXME remove me
   
   // Send pour data to be logged on the server
   if (poured_volume_in_mL > 0) {

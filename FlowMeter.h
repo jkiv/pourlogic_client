@@ -43,7 +43,7 @@
 class FlowMeter {
 
   private:
-    unsigned long _pulseCount; //!< Accumulates when flow meter pulses on #_interruptPin when interrupts are attached and enabled
+    unsigned short _pulseCount; //!< Accumulates when flow meter pulses on #_interruptPin when interrupts are attached and enabled
     int _interruptPin; //!< The input pin attached to the flow meter's output
     int _interruptNumber; //!< The interrupt number used for the flow meter
     
@@ -60,8 +60,8 @@ class FlowMeter {
     //!< Read flowed volume in mL until a maximum volume is reached, a given time since the meter read flow has passed, and/or a total time has passed
     float readVolume_mL(int maxVolume_mL, unsigned long lastPulseTimeout_ms = 1000, unsigned long totalTimeout_ms = 5000, unsigned long delay_ms = 250);
 
-    //!< Will return the pulse count from first pulse.
-    unsigned long calibrate(unsigned long pourtime_ms = 1000, unsigned long timeout_ms = 5000);
+    //!< Will run until targetPulseCount is reached; the measured volume should give volume per pulse for a known targetPulseCount.
+    unsigned long calibrate(unsigned short targetPulseCount, unsigned long pourtime_ms = 1000, unsigned long timeout_ms = 5000, unsigned long delay_ms = 250);
     
     //!< Interrupt handler for a flow meter pulse.
     static void pulse();

@@ -15,11 +15,11 @@
  * \brief Reads data from #stream into #body until #pattern is witnessed.  #body will contain #pattern.
  * \param stream The Stream to read from; it should be available().
  * \param pattern If this pattern is encountered, reading will stop and the function will return true.
- * \param body All data read will be stored in this string.
- * \param maximumBytes The maximum number of bytes to read into before failure
+ * \param maximumBytes The maximum number of bytes to read into before failure. Zero specifies no limit, but nothing will be read into body.
+ * \param body All data read will be stored in this character buffer.
  * \return False will be returned if the operation stopped for any reason other than hitting the pattern.  If the pattern was seen, this function returns true.
  */
-bool readStreamUntil(Stream* stream, String const &pattern, String &body, int maximumBytes = 0);
+bool readStreamUntil(Stream* stream, String const &pattern, unsigned short maximumBytes = 0, char* body = NULL);
 
 /*!
  * \brief Reads data from #stream until #pattern is witnessed.  All read data is discarded.
@@ -27,7 +27,7 @@ bool readStreamUntil(Stream* stream, String const &pattern, String &body, int ma
  * \param pattern If this pattern is encountered, reading will stop and the function will return true.
  * \returns False will be returned if the operation stopped for any reason other than hitting the pattern.  If the pattern was seen, this function returns true.
  */
-bool readStreamUntil(Stream* stream, String const &pattern);
+//bool readStreamUntil(Stream* stream, String const &pattern);
 
 /*!
  * \brief Reads data from #stream until the character being read is not in #alphabet.
@@ -36,8 +36,8 @@ bool readStreamUntil(Stream* stream, String const &pattern);
  * \param alphabet The stream is read until a character that is not in this string is encountered.
  * \returns False will be returned if no character outside of the #alphabet was encountered, true if a character was encountered that was not in the alphabet.
  */
-bool readStreamWhileIn(Stream* stream, String const &alphabet);
-bool readStreamWhileIn(Stream* stream, String const &alphabet, String &body, int maximumBytes = 0);
+//bool readStreamWhileIn(Stream* stream, String const &alphabet);
+inline bool readStreamWhileIn(Stream* stream, String const &alphabet, unsigned short maximumBytes = 0, char* body = NULL);
 
 /*!
  * \brief Reads data from #stream until the character being read is in #alphabet.
@@ -46,18 +46,23 @@ bool readStreamWhileIn(Stream* stream, String const &alphabet, String &body, int
  * \param alphabet The stream is read until a character that is not in this string is encountered.
  * \returns False will be returned if no character outside of the #alphabet was encountered, true if a character was encountered that was not in the alphabet.
  */
-bool readStreamWhileNotIn(Stream* stream, String const &alphabet);
-bool readStreamWhileNotIn(Stream* stream, String const &alphabet, String &body, int maximumBytes = 0);
+//bool readStreamWhileNotIn(Stream* stream, String const &alphabet);
+inline bool readStreamWhileNotIn(Stream* stream, String const &alphabet, unsigned short maximumBytes = 0, char* body = NULL);
 
 //!< Generalized conditional stream reading function used for both #readStreamWhileIn and #readStreamWhileNotIn
-bool _readStreamWhile(Stream* stream, String const &alphabet, bool whileInAlphabet);
-bool _readStreamWhile(Stream* stream, String const &alphabet, bool whileInAlphabet, String &body, int maximumBytes = 0);
+//bool _readStreamWhile(Stream* stream, String const &alphabet, bool whileInAlphabet);
+bool _readStreamWhile(Stream* stream, String const &alphabet, bool whileInAlphabet, unsigned short maximumBytes = 0, char* body = NULL);
 
 /*!
  * \brief Waits for data to be ready to read, or times out
  * \param timeout_ms Timeout in milliseconds (default = 2000)
  * \returns True on ready, false on timeout
  */
-bool waitForAvailable(Stream* stream, unsigned long timeout_ms = 2000);
+bool waitForAvailable(Stream* stream, unsigned long timeout_ms = 10000);
+
+/*!
+ * \brief Reads the stream until unavailable, discarding all read bytes.
+ */
+void readUntilUnavailable(Stream* stream);
 
 #endif // #ifndef POURLOGIC_STREAM_UTIL_H

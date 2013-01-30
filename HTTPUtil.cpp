@@ -6,12 +6,8 @@
 const char HTTP_ENDLINE[]   = "\r\n";
 const char HTTP_STATUS_OK[] = "200";
 
-boolean readHTTPLine(Stream& stream, String &line) {
-  return readStreamUntil(&stream, HTTP_ENDLINE, line);
-}
-
-boolean readHTTPLine(Stream& stream, String &line, int maximumBytes) {
-  return readStreamUntil(&stream, HTTP_ENDLINE, line, maximumBytes);
+boolean readHTTPLine(Stream& stream, unsigned short maximumBytes, char* line) {
+  return readStreamUntil(&stream, HTTP_ENDLINE, maximumBytes, line);
 }
 
 unsigned long printStatusLineHeadGet(Print& target) {
@@ -27,7 +23,7 @@ unsigned long printHTTPEndline(Print& target) {
 }
 
 unsigned long printStatusLineTail(Print& target) {
-  return target.print(F(" HTTP/1.1"));
+  return target.print(F(" HTTP/1.0"));
 }
 
 unsigned long printHostHeader(Print& target) {

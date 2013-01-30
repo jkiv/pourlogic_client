@@ -8,11 +8,8 @@
 #define HTTP_USER_AGENT "pourlogic/1.0 arduino/1.0"
 #define HTTP_HOSTNAME   "pourlogic.com"
 
-//!< Reads an HTTP line.
-boolean readHTTPLine(Stream& stream, String &line);
-
 //!< Reads an HTTP line or until `maximumBytes' bytes are read.
-boolean readHTTPLine(Stream& stream, String &line, int maximumBytes);
+boolean readHTTPLine(Stream& stream, unsigned short maximumBytes = 0, char* line = NULL);
 
 //!< Prints the start of an HTTP status line for a GET query.
 unsigned long printStatusLineHeadGet(Print &target);

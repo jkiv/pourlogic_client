@@ -3,8 +3,6 @@
 #include "Nonce.h"
 
 void Nonce::begin(int baseOffset) {
-  uint8_t *counterBytes = (uint8_t*) &_count;
-    
   // Set the base offset in EEPROM
   _baseOffset = baseOffset;
     
@@ -13,12 +11,12 @@ void Nonce::begin(int baseOffset) {
     reload();
   }
   else { // Not initialized
-    set(0);
     EEPROM.write(_baseOffset + INITIALIZED_OFFSET, INITIALIZED);
+    set(0);
   }
 }
 
-uint32_t Nonce::count() {
+unsigned long Nonce::count() {
   return _count;
 }
 

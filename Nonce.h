@@ -14,10 +14,10 @@ class Nonce {
     Nonce() {}
     ~Nonce() {}
 
-    virtual void begin(int baseOffset = 0); //!< Call to initialize the nonce generator
-    //virtual uint32_t next();                //!< Returns a nonce and increments
+    void begin(int baseOffset = 0); //!< Call to initialize the nonce generator
+    //virtual uint32_t next();        //!< Returns a nonce and increments
     
-    uint32_t count();                       //!< Returns the current valve of the counter
+    unsigned long count();                       //!< Returns the current valve of the counter
     void increment();                       //!< Increment the counter
     void unset();                           //!< Mark the counter as uninitialized
     void set(uint32_t newCount);            //!< Set a new counter value
@@ -29,7 +29,7 @@ class Nonce {
     static const byte INITIALIZED = 0xAA; //!< Arbitrary byte pattern to check if the counter has ever been initialized
   
     int _baseOffset;
-    uint32_t _count;
+    unsigned long _count;
 };
 
 #endif // #ifndef POURLOGIC_NONCE_H
