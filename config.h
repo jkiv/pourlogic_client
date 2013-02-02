@@ -21,10 +21,10 @@
 #define SETTINGS_ETHERNET_USE_DHCP //!< Use DHCP for this device
 
 #define SETTINGS_ETHERNET_MAC {0x00, 0x00, 0x00, 0x00, 0x00, 0x00} //!< Device's MAC address
-#define SETTINGS_ETHERNET_IP  IPAddress(10, 0, 0, 2)               //!< Device's IP address (if not using DHCP)
+#define SETTINGS_ETHERNET_IP  IPAddress(192, 168, 0, 100)          //!< Device's IP address (if not using DHCP)
 
 // .. server info
-#define SETTINGS_SERVER_IP   IPAddress(10, 0, 0, 1) //!< Server IP
-#define SETTINGS_SERVER_PORT 80                     //!< Server port
+#define SETTINGS_SERVER_IP   IPAddress(192, 168, 0, 101) //!< Server IP
+#define SETTINGS_SERVER_PORT 80                          //!< Server port
 
 #endif // #ifndef POURLOGIC_CLIENT_CONFIG_H

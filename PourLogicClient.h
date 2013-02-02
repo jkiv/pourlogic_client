@@ -92,8 +92,8 @@ class PourLogicClient : public EthernetClient {
   
   // Request parts ////////////////////////////////////////////////////////////
   boolean _sendPourRequest(String const &tagData);
-  boolean _getPourRequestResponse(int& maxVolume);
-  boolean _sendPourResult(String const &tagData, float pourVolume);
+  boolean _getPourRequestResponse(int& max_volume);
+  boolean _sendPourResult(String const &tag_data, float pour_volume);
   boolean _getPourResultResponse();
   
  protected:
@@ -103,6 +103,7 @@ class PourLogicClient : public EthernetClient {
   PourLogicClient(unsigned long api_id, const char* api_private_key);
   ~PourLogicClient();
   
+  //!< Close connection and flush the receive buffer
   void shutdown();
   
   //!< Request the max. volume for a pour for the user given by tagData.

@@ -54,10 +54,10 @@ class FlowMeter {
     ~FlowMeter(){ /**/ }
     
     //!< Sets up the flow meter pins, etc.
-    void begin(int interruptPin, int interruptNumber);
+    void begin(int interrupt_pin, int interrupt_number);
     
     //!< Read flowed volume in mL until a maximum volume is reached, a given time since the meter read flow has passed, and/or a total time has passed
-    float readVolume_mL(int maxVolume_mL, unsigned long last_pulse_timeout_ms = 2000, unsigned long total_timeout_ms = 30000, unsigned long delay_ms = 250);
+    float readVolume_mL(int max_volume_mL, unsigned long last_pulse_timeout_ms = 2000, unsigned long total_timeout_ms = 30000, unsigned long delay_ms = 250);
 
     //!< Will run until targetPulseCount is reached; the measured volume should give volume per pulse for a known targetPulseCount.
     unsigned long calibrate(unsigned short target_pulse_count = 200, unsigned long last_pulse_timeout_ms = 2000, unsigned long total_timeout_ms = 30000, unsigned long delay_ms = 250);

@@ -9,7 +9,7 @@
 #define HTTP_HOSTNAME   "pourlogic.com"
 
 //!< Reads an HTTP line or until `maximumBytes' bytes are read.
-boolean readHTTPLine(Stream& stream, unsigned short maximumBytes = 0, char* line = NULL);
+boolean readHTTPLine(Stream& stream, unsigned short maximum_bytes = 0, char* line = NULL);
 
 //!< Prints the start of an HTTP status line for a GET query.
 unsigned long printStatusLineHeadGet(Print &target);

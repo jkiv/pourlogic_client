@@ -2,20 +2,19 @@
 
 #include "HexString.h"
 
-String bytesToHexString(const byte *bytes, int length) {    
-    String hexString = "";
-    if (length <= 0) return hexString;
+String bytesToHexString(const byte *bytes, int length) {
+    String hex_string = "";
+    if (length <= 0) return hex_string;
 
     for (int i = 0; i < length; i++) {
-      hexString += "0123456789abcdef"[bytes[i]>>4];
-      hexString += "0123456789abcdef"[bytes[i]&0xf];
+      hex_string += "0123456789abcdef"[bytes[i]>>4];
+      hex_string += "0123456789abcdef"[bytes[i]&0xf];
     }
     
-    return hexString;
+    return hex_string;
 }
 
 void bytesToHexString(char* result_string, const byte *bytes, int length) {    
-    //String hexString = "";
     result_string[0] = '\0';
     
     if (length <= 0) return;
@@ -28,52 +27,52 @@ void bytesToHexString(char* result_string, const byte *bytes, int length) {
     result_string[length<<1] = '\0';
 }
 
-boolean hexStringToBytes(String const &hexString, byte *buffer, int &resultLength, int maxLength) {
+boolean hexStringToBytes(String const &hex_string, byte *buffer, int &result_length, int max_length) {
   
     char c = '\0';
     byte tmp = 0;
     int i = 0, j = 0;
     
-    resultLength = 0;
+    result_length = 0;
 
-    if (hexString.length() <= 0) {
-        return true; // resultLength == 0
+    if (hex_string.length() <= 0) {
+        return true; // result_length == 0
     }
     
-    if (hexString.length() % 2 != 0) {
+    if (hex_string.length() % 2 != 0) {
         return false; // Contains a half-byte, cannot parse
     }
     
     // Accept strings that start with 0x
-    if (hexString.startsWith("0x")) {
+    if (hex_string.startsWith("0x")) {
         i = 2;
     }
 
     // Test hex string before parsing    
     // .. by checking its length
-    resultLength = hexString.length()*sizeof(byte)/2;
+    result_length = hex_string.length()*sizeof(byte)/2;
     
-    if (resultLength > maxLength) {
-      resultLength = 0;
+    if (result_length > max_length) {
+      result_length = 0;
       return false;
     }
     
     // .. by checking its character set
-    for (int j = i; j < hexString.length(); j++) {
-        c = hexString.charAt(j);
+    for (int j = i; j < hex_string.length(); j++) {
+        c = hex_string.charAt(j);
         
         if (!((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || (c >= '0' && c <= '9'))) {
-            resultLength = 0;
+            result_length = 0;
             return false;
         }
     }
     
     // Zero byte buffer before populating
-    memset(buffer, 0, resultLength);
+    memset(buffer, 0, result_length);
 
     // Parse hex string into values
-    for (i = 0, j = 0; i < hexString.length(); i++) {
-        c = hexString.charAt(i);
+    for (i = 0, j = 0; i < hex_string.length(); i++) {
+        c = hex_string.charAt(i);
 
         // Uppercase
         if (c >= 'A' && c <= 'F') {

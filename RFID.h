@@ -33,10 +33,10 @@ class RFID_EM41000 {
     boolean readRFID(String& rfid_result, unsigned long timeout_ms = 0); //!< Reads an RFID tag
     void enableRFID(); //!< Enables the RFID reader
     void disableRFID(); //!< Disables the RFID reader
-    void begin(int pinEnable); //!< Sets the pin mode of the \\ENABLE pin (RFID_EM41000#setPinEnable) as OUTPUT and disables the RFID reader
+    void begin(int pin_enable); //!< Sets the pin mode of the \\ENABLE pin (RFID_EM41000#setPinEnable) as OUTPUT and disables the RFID reader
   
   private:
-    int _pinEnable; //!< Digital pin connected to /ENABLE
+    int _pin_enable; //!< Digital pin connected to /ENABLE
 };
 
 #endif // #ifndef POURLOGIC_RFID_H

@@ -19,6 +19,6 @@ void bytesToHexString(char* result_string, const byte* bytes, int length);
 
 /*! \brief Convert a hexidecimal String into an existing byte array.
  */
-boolean hexStringToBytes(String const &hexString, byte *buffer, int &resultLength, int maxLength);
+boolean hexStringToBytes(String const &hex_string, byte *buffer, int &result_length, int max_length);
 
 #endif // #ifndef POURLOGIC_HEX_STRING_H

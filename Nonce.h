@@ -14,7 +14,7 @@ class Nonce {
     Nonce() {}
     ~Nonce() {}
 
-    void begin(int baseOffset = 0); //!< Call to initialize the nonce generator
+    void begin(int base_offset = 0); //!< Call to initialize the nonce generator
     //virtual uint32_t next();        //!< Returns a nonce and increments
     
     unsigned long count();                       //!< Returns the current valve of the counter
@@ -28,7 +28,7 @@ class Nonce {
     static const int INITIALIZED_OFFSET = 0;
     static const byte INITIALIZED = 0xAA; //!< Arbitrary byte pattern to check if the counter has ever been initialized
   
-    int _baseOffset;
+    int _base_offset;
     unsigned long _count;
 };
 
