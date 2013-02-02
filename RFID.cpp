@@ -18,6 +18,7 @@ boolean RFID_EM41000::readRFID(String& rfid_result, unsigned long timeout_ms) {
     
     // Disable the RFID reader as soon as possible
     // to prevent phantom reads...
+    // FIXME phantom reads are a problem still (v1.0.1)
     if (Serial.available() + bytesRead >= RFID_LENGTH) {
       disableRFID();
     }
@@ -45,6 +46,7 @@ boolean RFID_EM41000::readRFID(String& rfid_result, unsigned long timeout_ms) {
   disableRFID();
   
   // Avoid phantom reads
+  // FIXME phantom reads are a problem still (v1.0.1)
   while(Serial.available())
     Serial.read();
   

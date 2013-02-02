@@ -14,7 +14,10 @@ PourLogicClient::PourLogicClient(unsigned long api_id, const char* api_private_k
   : __id(api_id)
 {
   // Initialize timeout
-  setTimeout(5000);
+  setTimeout(2000);
+  
+  // Initialize nonce
+  _nonce.begin();
   
   // Initialize key for use with HMAC
   Sha256.init();
@@ -55,7 +58,7 @@ unsigned long PourLogicClient::_printPourRequestStatusLine(Print &target, String
 unsigned long PourLogicClient::_printPourResultStatusLine(Print& target) {
   unsigned long bytes_sent = 0;
   
-  bytes_sent += printStatusLineHeadGet(target);
+  bytes_sent += printStatusLineHeadPost(target);
   bytes_sent += target.print(SERVER_POUR_RESULT_URI);
   bytes_sent += printStatusLineTail(target);
   //bytes_sent += printHTTPEndline(target);
@@ -157,15 +160,8 @@ boolean PourLogicClient::_sendPourRequest(String const &tagData) {
  * still end in a newline.
  *
  */
-boolean PourLogicClient::_sendPourResult(String const &tagData, float pourVolume)
-{
+boolean PourLogicClient::_sendPourResult(String const &tag_data, float pour_volume) {
   int content_length = 0; // Required for POST request
-  
-  Serial.println(F("Sending pour result?"));
-  
-  
-  Serial.println(tagData);
-  Serial.println(pourVolume);
   
   // Initialize HMAC
   _initializeAuth();
@@ -175,7 +171,7 @@ boolean PourLogicClient::_sendPourResult(String const &tagData, float pourVolume
   Sha256.print('\n');
   _printPourResultStatusLine(Sha256);
   Sha256.print('\n');
-  content_length += _printPourResultMessageBody(Sha256, tagData, pourVolume);
+  content_length += _printPourResultMessageBody(Sha256, tag_data, pour_volume);
   // -- done HMAC
   
   // Send request to server --
@@ -191,8 +187,9 @@ boolean PourLogicClient::_sendPourResult(String const &tagData, float pourVolume
   printHTTPEndline(*this);
   
   // Message Body
-  _printPourResultMessageBody(*this, tagData, pourVolume);
-  // -- done sending request 
+  _printPourResultMessageBody(*this, tag_data, pour_volume);
+  
+  // -- done sending request
   
   return true;
 } 
@@ -226,13 +223,11 @@ boolean PourLogicClient::_getPourRequestResponse(int& max_volume_mL)
   
   // Handle status line
   if (!_checkResponseStatusLine(HTTP_STATUS_OK)) {
-    shutdown();
     return false;
   }
   
   // Read headers
   if (!_parseResponseHeaders(message_hmac)) {
-    shutdown();
     return false;
   }
   
@@ -273,13 +268,11 @@ boolean PourLogicClient::_getPourResultResponse()
   
   // Handle status line
   if (!_checkResponseStatusLine(HTTP_STATUS_OK)) {
-    shutdown();
     return false;
   }
 	
   // Read headers
   if (!_parseResponseHeaders(messageHmac)) {
-    shutdown();
     return false;
   }
 
@@ -307,7 +300,6 @@ boolean PourLogicClient::_parseXPourLogicAuthHeader(String const &line, String &
   int otpHeaderHmacStart = line.indexOf(':', otpHeaderStart);
   
   if (otpHeaderStart < 0 || otpHeaderHmacEnd < 0 || otpHeaderHmacStart < 0) {
-    shutdown();
     return false; // No header or HMAC
   }
   
@@ -366,7 +358,7 @@ boolean PourLogicClient::requestMaxVolume(String const& tag_data, int& max_volum
 }
 
 //!< Send the result of a pour to the server.
-boolean PourLogicClient::reportPouredVolume(String const& tag_data, int const& volume_mL) {
+boolean PourLogicClient::reportPouredVolume(String const& tag_data, float volume_mL) {
   boolean success = false;
   
   // Send pour results
@@ -376,43 +368,6 @@ boolean PourLogicClient::reportPouredVolume(String const& tag_data, int const& v
 
   shutdown();
   return success;
-}
-
-boolean PourLogicClient::_test_xauth() {
-  
-  if (!connect(SETTINGS_SERVER_IP, SETTINGS_SERVER_PORT)) {
-    return false;
-  }
-  
-  // Initialize HMAC
-  _initializeAuth();
-  
-  // -- Feed HMAC digest --
-  Sha256.print(_nonce.count());            // NONCE
-  Sha256.print('\n');
-  printStatusLineHeadGet(Sha256);          // STATUS LINE
-  Sha256.print(F(SERVER_TEST_XAUTH_URI));
-  printStatusLineTail(Sha256);
-  Sha256.print('\n');
-  // empty message body                    // MESSAGE BODY
-  
-  // -- done HMAC
-  
-  // Send request to server --
-  // Status/Request line
-  printStatusLineHeadGet(*this);
-  print(F(SERVER_TEST_XAUTH_URI));
-  printStatusLineTail(*this);
-  printHTTPEndline(*this);
-  
-  // HTTP headers
-  printHostHeader(*this);
-  printUserAgentHeader(*this);
-  _printXPourLogicAuthHeader(*this);
-  printHTTPEndline(*this);
-  // empty message body
-  
-  // TODO response
 }
 
 void PourLogicClient::shutdown() {

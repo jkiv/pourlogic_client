@@ -18,9 +18,9 @@
 #define CLIENT_AUTH_HEADER_NAME "X-Pourlogic-Auth"
 
 // NOTE: Rake/Rails cannot reconstruct our request URI exactly as sent, so we omit the trailing slash here
-#define SERVER_POUR_REQUEST_URI "/pours/new"   //!< URI to request when requesting to pour
-#define SERVER_POUR_RESULT_URI "/pours/create" //!< URI to request when sending result
-#define SERVER_TEST_XAUTH_URI "/test/xauth"    //!< URI to test X-Pourlogic-Auth
+#define SERVER_POUR_REQUEST_URI "/pours/new" //!< URI to request when requesting to pour
+#define SERVER_POUR_RESULT_URI "/pours"      //!< URI to request when sending result
+#define SERVER_TEST_XAUTH_URI "/test/xauth"  //!< URI to test X-Pourlogic-Auth
 
 /*!
  * At this time there are two different requests:
@@ -109,10 +109,7 @@ class PourLogicClient : public EthernetClient {
   boolean requestMaxVolume(String const& tag_data, int& max_volume_mL);
   
   //!< Send the result of a pour to the server.
-  boolean reportPouredVolume(String const& tag_data, int const& volume_mL);
-  
-  // Tests
-  boolean _test_xauth();    // test the client against live HTTP server
+  boolean reportPouredVolume(String const& tag_data, float volume_mL);
 };
 
 #endif // #ifndef POURLOGIC_CLIENT_H

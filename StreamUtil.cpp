@@ -63,7 +63,6 @@ bool readStreamUntil(Stream* stream, String const &pattern) {
   
   while (waitForAvailable(stream) && !matched) {
     c = stream->read();
-    Serial.print(c); // FIXME remove
 
     if (c == pattern.charAt(matchCount)) {
       matchCount++;
@@ -124,7 +123,6 @@ bool _readStreamWhile(Stream* stream, String const &alphabet, bool whileInAlphab
   
   while (waitForAvailable(stream)) {
     c = stream->peek(); // peek byte from stream
-    Serial.print(c); // FIXME remove
 
     isInAlphabet = false;
     

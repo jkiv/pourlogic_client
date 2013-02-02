@@ -59,7 +59,7 @@ void setup() {
 void loop()
 {
   int max_volume_in_mL = 0;
-  int poured_volume_in_mL = 0;
+  float poured_volume_in_mL = 0.f;
   String tag_data;
 
   // Restrict loop timing
@@ -70,14 +70,10 @@ void loop()
     return; // RFID read timed-out or failed.
   }
   
-  Serial.println(tag_data); // FIXME remove me
-  
   // Get the max volume the patron can pour
   if (!client.requestMaxVolume(tag_data, max_volume_in_mL)) {
     return; // Request failed
   }
-  
-  Serial.println(max_volume_in_mL); // FIXME remove me
   
   // Can the patron pour?
   if (max_volume_in_mL == 0) {
@@ -92,8 +88,6 @@ void loop()
 
   // Close valve
   valve.close();
-  
-  Serial.println(poured_volume_in_mL); // FIXME remove me
   
   // Send pour data to be logged on the server
   if (poured_volume_in_mL > 0) {

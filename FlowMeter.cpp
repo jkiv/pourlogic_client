@@ -4,32 +4,32 @@
 
 /*! Active flow meter instance (only one FlowMeter active at a time)
  */
-static FlowMeter *activeFlowMeter = NULL;
+static FlowMeter *active_flow_meter = NULL;
 
 /*! Flow meter interrupt handler. It increments the pulse count on the #activeFlowMeter.
  */
 void FlowMeter::pulse() {
-  if (activeFlowMeter != NULL) {
-    activeFlowMeter->_pulseCount++;
+  if (active_flow_meter != NULL) {
+    active_flow_meter->_pulse_count++;
   }
 }
 
 /**
- * Attaches the active flow meter and its interrupts. Resets #_pulseCount to 0.
+ * Attaches the active flow meter and its interrupts. Resets #_pulse_count to 0.
  */
 void FlowMeter::_startReading() {
-  _pulseCount = 0;
-  activeFlowMeter = this;
+  _pulse_count = 0;
+  active_flow_meter = this;
   
-  attachInterrupt(_interruptNumber, FlowMeter::pulse, RISING);
+  attachInterrupt(_interrupt_number, FlowMeter::pulse, RISING);
 }
 
 /**
  * Detaches the active flow meter and its interrupts.
  */
 void FlowMeter::_stopReading() {
-  detachInterrupt(_interruptNumber);
-  activeFlowMeter = NULL;
+  detachInterrupt(_interrupt_number);
+  active_flow_meter = NULL;
 }
 
 /**
@@ -37,27 +37,36 @@ void FlowMeter::_stopReading() {
  * \param interruptPin The pin the flow meter iterrupts on.
  * \param interruptNumber The interupt number typically corresponds to the pin. Check your chip's documentation for the pin <=> interrupt number relation.
  */
-void FlowMeter::begin(int interruptPin, int interruptNumber) {
-  _interruptPin = interruptPin;
-  _interruptNumber = interruptNumber;
-  
-  // Set the pin mode for the interrupt pin
-  pinMode(interruptPin, INPUT);
+void FlowMeter::begin(int interrupt_pin, int interrupt_number)
+{
+  // Set up pins
+  _interrupt_pin = interrupt_pin;
+  _interrupt_number = interrupt_number;
+  pinMode(interrupt_pin, INPUT);
+}
+
+//!< Convert volume (in mL) to pulses
+unsigned short FlowMeter::volumeToPulseCount(float volume) {
+  return volume / SETTINGS_FLOW_PULSES_TO_ML;
+}
+
+//!< Convert # of pulses to volume (in mL)
+float FlowMeter::pulseCountToVolume(unsigned short count) {
+  return count * SETTINGS_FLOW_PULSES_TO_ML;
 }
 
 /**
  * Returns the poured volume in millileters.
  * \param maxVolume_mL The function will return after this many millilitres have been poured. If this is zero or negative then there is no limit.
- * \param lastPulseTimeout_ms The function will return after this many milliseconds since flow was last detected.
- * \param totalTimeout_ms Causes the function to return after this many milliseconds since the function was called.
+ * \param last_pulse_timeout_ms The function will return after this many milliseconds since flow was last detected.
+ * \param total_timeout_ms Causes the function to return after this many milliseconds since the function was called.
  * \param delay_ms The time to wait between checking any of the terminating conditions.
  */
-float FlowMeter::readVolume_mL(int maxVolume_mL, unsigned long lastPulseTimeout_ms, unsigned long totalTimeout_ms, unsigned long delay_ms) {  
-  unsigned long maxVolume_pulses = (unsigned long)(((float) maxVolume_mL) / SETTINGS_FLOW_PULSES_TO_ML); //!< We convert the volume to a number of pulses to avoid floating point arithmetic.
-  unsigned short pulseCountHistory[2] = {0, 0}; //!< The current (0) and previous (1) pulse counts for checking terminating conditions
-
-  unsigned long startTime_ms = millis(); //!< The total timeout reference
-  unsigned long timeSinceLastPulse_ms = millis(); //!< The end-of-pour timeout reference
+float FlowMeter::readVolume_mL(int max_volume_mL, unsigned long last_pulse_timeout_ms, unsigned long total_timeout_ms, unsigned long delay_ms) {  
+  unsigned short max_volume_pulses = volumeToPulseCount(max_volume_mL); //!< We convert the volume to a number of pulses to avoid floating point arithmetic.
+  unsigned short pulse_count_history[2] = {0, 0}; //!< The current (0) and previous (1) pulse counts for checking terminating conditions
+  unsigned long start_time_ms = millis(); //!< The total timeout reference
+  unsigned long time_of_last_pulse_ms = start_time_ms; //!< The end-of-pour timeout reference
   
   // Attach interrupt on rising flow meter pin
   _startReading();
@@ -65,36 +74,36 @@ float FlowMeter::readVolume_mL(int maxVolume_mL, unsigned long lastPulseTimeout_
   // Capture pulses and think...
   for(;;) {
 	  
-    // Quickly grab and copy _pulseCount to a non-volitile variable
+    // Quickly grab and copy _pulse_count to a non-volitile variable
     noInterrupts();
-    pulseCountHistory[0] = _pulseCount;
+    pulse_count_history[0] = _pulse_count;
     interrupts();
 
     // Remember moment of last detected pulse 
-    if (pulseCountHistory[0] > pulseCountHistory[1]) {
-      timeSinceLastPulse_ms = millis();
+    if (pulse_count_history[0] > pulse_count_history[1]) {
+      time_of_last_pulse_ms = millis();
     }
     
     // Have we reached the maximum volume?
-    if (maxVolume_pulses > 0 && pulseCountHistory[0] >= maxVolume_pulses) {
+    if (max_volume_pulses > 0 && pulse_count_history[0] >= max_volume_pulses) {
       //Serial.println("Maximum volume reached...");
       break;
     }
 
     // Time out if it has been too long since last detected flow
-    if (millis() > timeSinceLastPulse_ms + lastPulseTimeout_ms) {
+    if (millis() > time_of_last_pulse_ms + last_pulse_timeout_ms) {
       //Serial.println("Timeout since last detected flow...");
       break;
     }
 
     // Time out if we have been reading for too long 
-    if (millis() >= startTime_ms + totalTimeout_ms) {
+    if (millis() >= start_time_ms + total_timeout_ms) {
       //Serial.println("Timeout since start of read...");
       break;
     }
 
     // Shift pulse history back
-    pulseCountHistory[1] = pulseCountHistory[0];
+    pulse_count_history[1] = pulse_count_history[0];
 
     // Wait for a bit
     delay(delay_ms);
@@ -103,10 +112,8 @@ float FlowMeter::readVolume_mL(int maxVolume_mL, unsigned long lastPulseTimeout_
   // Detach flow meter interrupt
   _stopReading();
   
-  Serial.println(_pulseCount);
-  
   // Return the total poured volume
-  return (float) _pulseCount * SETTINGS_FLOW_PULSES_TO_ML;
+  return pulseCountToVolume(_pulse_count);
 }
 
 /**
@@ -156,11 +163,11 @@ float FlowMeter::readVolume_mL(int maxVolume_mL, unsigned long lastPulseTimeout_
  * flow rate to be calculated. Make sure this flow rate is within the
  * operating conditions of the flow meter.
  */
-unsigned long FlowMeter::calibrate(unsigned short targetPulseCount, unsigned long pourtime_ms, unsigned long timeout_ms, unsigned long delay_ms) {
-  unsigned short pulseCountHistory[2] = {0, 0}; //!< The current (0) and previous (1) pulse counts for checking terminating conditions
-  unsigned long startTime_ms = millis(); //!< The total timeout reference
-  unsigned long timeSinceLastPulse_ms = millis(); //!< The end-of-pour timeout reference
-  boolean success = true;
+unsigned long FlowMeter::calibrate(unsigned short target_pulse_count, unsigned long last_pulse_timeout_ms, unsigned long total_timeout_ms, unsigned long delay_ms) {
+  unsigned short pulse_count_history[2] = {0, 0}; //!< The current (0) and previous (1) pulse counts for checking terminating conditions
+  unsigned long start_time_ms = millis(); //!< The total timeout reference
+  unsigned long time_of_last_pulse_ms = start_time_ms; //!< The end-of-pour timeout reference (initially, sufficiently large)
+  boolean success = false;
   
   // Attach interrupt on rising flow meter pin
   _startReading();
@@ -168,37 +175,37 @@ unsigned long FlowMeter::calibrate(unsigned short targetPulseCount, unsigned lon
   // Capture pulses and think...
   for(;;) {
 	  
-    // Quickly grab and copy _pulseCount to a non-volitile variable
+    // Quickly grab and copy _pulse_count to a non-volitile variable
     noInterrupts();
-    pulseCountHistory[0] = _pulseCount;
+    pulse_count_history[0] = _pulse_count;
     interrupts();
 
     // Remember moment of last detected pulse 
-    if (pulseCountHistory[0] > pulseCountHistory[1]) {
-      timeSinceLastPulse_ms = millis();
-    }
-
-    // Time out if it has been too long since last detected flow
-    if (millis() > timeSinceLastPulse_ms + lastPulseTimeout_ms) {
-      //Serial.println("Timeout since last detected flow...");
-      break;
+    if (pulse_count_history[0] > pulse_count_history[1]) {
+      time_of_last_pulse_ms = millis();
     }
     
-    // Time out if we have been reading for too long 
-    if (millis() >= startTime_ms + totalTimeout_ms) {
-      //Serial.println("Timeout since start of read...");
-      break;
-    }
-
-    // Have we reached the calibration pulse count?
-    if (pulseCountHistory[0] >= targetPulseCount) {
-      //Serial.println("Target pulse count reached");
+    // Have we reached the maximum volume?
+    if (pulse_count_history[0] >= target_pulse_count) {
+      //Serial.println("Target volume reached...");
       success = true;
       break;
     }
 
+    // Time out if it has been too long since last detected flow
+    if (millis() > time_of_last_pulse_ms + last_pulse_timeout_ms) {
+      //Serial.println("Timeout since last detected flow...");
+      break;
+    }
+
+    // Time out if we have been reading for too long 
+    if (millis() >= start_time_ms + total_timeout_ms) {
+      //Serial.println("Timeout since start of read...");
+      break;
+    }
+
     // Shift pulse history back
-    pulseCountHistory[1] = pulseCountHistory[0];
+    pulse_count_history[1] = pulse_count_history[0];
 
     // Wait for a bit
     delay(delay_ms);
