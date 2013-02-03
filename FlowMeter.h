@@ -5,6 +5,7 @@
 
 #include <Arduino.h>
 #include "config.h"
+#include "pin_config.h"
 
 /*! \brief Manages a flow meter who pulses on a digital input pin during flow.
  *  This class provides an interface to an interupt-based flow meter where the
@@ -50,11 +51,8 @@ class FlowMeter {
     void _stopReading(); //!< Detach interrupts and clear the current flow meter reference
     
   public:
-    FlowMeter(){ /**/ }
+    FlowMeter(int interrupt_pin, int interrupt_number);
     ~FlowMeter(){ /**/ }
-    
-    //!< Sets up the flow meter pins, etc.
-    void begin(int interrupt_pin, int interrupt_number);
     
     //!< Read flowed volume in mL until a maximum volume is reached, a given time since the meter read flow has passed, and/or a total time has passed
     float readVolume_mL(int max_volume_mL, unsigned long last_pulse_timeout_ms = 2000, unsigned long total_timeout_ms = 30000, unsigned long delay_ms = 250);

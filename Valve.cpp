@@ -2,7 +2,8 @@
 
 #include "Valve.h"
 
-void Valve::begin(int valve_pin, boolean normally_closed)
+Valve::Valve(int valve_pin, boolean normally_closed)
+  : _valve_pin(valve_pin), _normally_closed(normally_closed)
 {
   // Set whether or not HIGH is used to open the valve
   //       | N.C. | N.O.
@@ -13,35 +14,26 @@ void Valve::begin(int valve_pin, boolean normally_closed)
   //
   // (Makes sense.)
   
-  _normally_closed = normally_closed;
-  
-  // Set the output pins for controlling the valve
-  _valve_pin = valve_pin;
+  // Set up pin modes
   pinMode(valve_pin, OUTPUT);
   
-  // Make sure the valve is closed by default
+#ifdef VALVE_KEEP_CLOSED
+  // Make sure the valve is kept closed
   close();
+#endif
 }
 
-void Valve::open()
-{
+void Valve::open() {
   digitalWrite(_valve_pin, _normally_closed ? HIGH : LOW);
 }
 
-void Valve::close()
-{
+void Valve::close() {
   digitalWrite(_valve_pin, _normally_closed ? LOW : HIGH);
 }
-  
-Valve::Valve()
-{
-  _normally_closed = true; // Use HIGH to open valve by default
-  _valve_pin = -1; // Default to -1 so we know if it's been set
-}
 
-Valve::~Valve()
-{
-  // Make sure the valve is closed on destruction
-  if (_valve_pin >= 0)
-    close();
+Valve::~Valve() {
+#ifdef VALVE_KEEP_CLOSED
+  // Make sure the valve is closed kept closed
+  close();
+#endif
 }

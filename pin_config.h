@@ -6,6 +6,8 @@
 // Hardware/Board configuration (Arduino Uno)
 #define FLOW1_PIN 2 //!< Flow meter (1) interrupt pin
 #define FLOW2_PIN 3 //!< Flow meter (2) interrupt pin
+#define RFID_RX_PIN 0 //!< RFID soft-serial TX pin
+#define RFID_TX_PIN 1 //!< RFID soft-serial TX pin
 #define RFID_ENABLE_PIN 5 //!< RFID reader ~enable pin
 #define VALVE1_PIN 6 //!< Valve (1) open/close pin
 #define VALVE2_PIN 7 //!< Valve (2) open/close pin

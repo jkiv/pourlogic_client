@@ -372,5 +372,5 @@ boolean PourLogicClient::reportPouredVolume(String const& tag_data, float volume
 
 void PourLogicClient::shutdown() {
   stop();
-  readUntilUnavailable(this); // flush receive buffer
+  readUntilUnavailable(*this); // flush receive buffer
 }

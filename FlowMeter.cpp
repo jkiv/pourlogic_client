@@ -37,11 +37,10 @@ void FlowMeter::_stopReading() {
  * \param interruptPin The pin the flow meter iterrupts on.
  * \param interruptNumber The interupt number typically corresponds to the pin. Check your chip's documentation for the pin <=> interrupt number relation.
  */
-void FlowMeter::begin(int interrupt_pin, int interrupt_number)
+FlowMeter::FlowMeter(int interrupt_pin, int interrupt_number)
+  : _interrupt_pin(interrupt_pin), _interrupt_number(interrupt_number)
 {
   // Set up pins
-  _interrupt_pin = interrupt_pin;
-  _interrupt_number = interrupt_number;
   pinMode(interrupt_pin, INPUT);
 }
 

@@ -27,6 +27,8 @@ void bytesToHexString(char* result_string, const byte *bytes, int length) {
     result_string[length<<1] = '\0';
 }
 
+
+// FIXME not used afaict
 boolean hexStringToBytes(String const &hex_string, byte *buffer, int &result_length, int max_length) {
   
     char c = '\0';

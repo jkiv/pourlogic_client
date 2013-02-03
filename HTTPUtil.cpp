@@ -7,7 +7,7 @@ const char HTTP_ENDLINE[]   = "\r\n";
 const char HTTP_STATUS_OK[] = "200";
 
 boolean readHTTPLine(Stream& stream, unsigned short maximum_bytes, char* line) {
-  return readStreamUntil(&stream, HTTP_ENDLINE, maximum_bytes, line);
+  return readStreamUntil(stream, HTTP_ENDLINE, maximum_bytes, line);
 }
 
 unsigned long printStatusLineHeadGet(Print& target) {

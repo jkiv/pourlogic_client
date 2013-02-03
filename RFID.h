@@ -4,7 +4,12 @@
 #define POURLOGIC_RFID_H
 
 #include <Arduino.h>
+#include <SoftwareSerial.h>
 #include <String.h>
+#include "pin_config.h"
+
+//#define RFID_USE_SOFTWARE_SERIAL
+#define RFID_BAUD_RATE 2400 
 
 /*!
  * This RFID reader provides a 10-digit hexidecimal token represented
@@ -22,8 +27,9 @@
  */
 class RFID_EM41000 {
   public:
-    RFID_EM41000(){}
+    RFID_EM41000(Stream& rfid_serial, int enable_pin);
     ~RFID_EM41000(){}
+    
     // Constants 
     static const char RFID_START = 0x0A; //!< Byte representing the start of the tag data
     static const char RFID_END = 0x0D; //!< Byte representing the end of the tag data
@@ -31,12 +37,14 @@ class RFID_EM41000 {
     static const long RFID_BAUD = 2400; //!< Baud rate of RFID communication
   
     boolean readRFID(String& rfid_result, unsigned long timeout_ms = 0); //!< Reads an RFID tag
+    
+  protected:
     void enableRFID(); //!< Enables the RFID reader
     void disableRFID(); //!< Disables the RFID reader
-    void begin(int pin_enable); //!< Sets the pin mode of the \\ENABLE pin (RFID_EM41000#setPinEnable) as OUTPUT and disables the RFID reader
-  
+    
   private:
-    int _pin_enable; //!< Digital pin connected to /ENABLE
+    int _enable_pin;
+    Stream& _rfid_serial;
 };
 
 #endif // #ifndef POURLOGIC_RFID_H

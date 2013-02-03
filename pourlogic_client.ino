@@ -3,11 +3,12 @@
 // General
 #include <Arduino.h>
 #include <SPI.h>
+#include <SoftwareSerial.h>
+#include <EEPROM.h>
+#include <String.h>
 
 // Ethernet
 #include <Ethernet.h>
-#include <EEPROM.h>
-#include <String.h>
 #include <sha256.h> // SHA Hashing (https://github.com/jkiv/Cryptosuite/)
 
 // PourLogic
@@ -23,25 +24,27 @@
 #include "Valve.h"
 #include "PourLogicClient.h"
 
-static FlowMeter flowMeter;
-static RFID_EM41000 rfidReader;
-static Valve valve;
+
+#ifdef RFID_USE_SOFTWARE_SERIAL
+static SoftwareSerial RFIDSerial(RFID_RX_PIN, RFID_TX_PIN);
+static RFID_EM41000 rfidReader(RFIDSerial, RFID_ENABLE_PIN);
+#else
+static RFID_EM41000 rfidReader(Serial, RFID_ENABLE_PIN);
+#endif
+static FlowMeter flowMeter(FLOW1_PIN, FLOW1_INTERRUPT);
+static Valve valve(VALVE1_PIN);
 static PourLogicClient client(SETTINGS_CLIENT_ID, SETTINGS_CLIENT_KEY);
 static byte mac[6] = SETTINGS_ETHERNET_MAC; // MAC address of ethernet shield
 
 //!<Setup the PourLogic controller environment and settings
-void setup() {   
-    // Start serial communications
-    Serial.begin(RFID_EM41000::RFID_BAUD);
+void setup() {
 
-    // Set up RFID reader
-    rfidReader.begin(RFID_ENABLE_PIN);
-    
-    // Set up flow meter
-    flowMeter.begin(FLOW1_PIN, FLOW1_INTERRUPT);
-    
-    // Set up valve
-    valve.begin(VALVE1_PIN);
+#ifdef RFID_USE_SOFTWARE_SERIAL
+  RFIDSerial.begin(RFID_BAUD_RATE);
+  Serial.begin(9600);
+#else
+  Serial.begin(RFID_BAUD_RATE);
+#endif
     
 #ifdef SETTINGS_ETHERNET_USE_DHCP
     while (Ethernet.begin(mac) == 0) {
@@ -51,7 +54,7 @@ void setup() {
     Ethernet.begin(mac, SETTINGS_ETHERNET_IP);
 #endif
 
-  // TODO Grab any settings from the server that might be of interest
+  // TODO Grab any settings from the server that might be of interest (e.g. flow conversion?)
 }
 
 /*! \brief Handle PourLogic day to day operations.
