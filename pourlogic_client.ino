@@ -9,7 +9,7 @@
 
 // Ethernet
 #include <Ethernet.h>
-#include <sha256.h> // SHA Hashing (https://github.com/jkiv/Cryptosuite/)
+#include <sha1.h> // SHA Hashing (https://github.com/jkiv/Cryptosuite/)
 
 // PourLogic
 #include "config.h"

@@ -6,7 +6,7 @@
 #include <Arduino.h>
 #include <String.h>
 #include <Ethernet.h>
-#include <sha256.h>
+#include <sha1.h>
 
 #include "config.h"
 #include "Nonce.h"
@@ -17,7 +17,7 @@
 
 #define CLIENT_AUTH_HEADER_NAME "X-Pourlogic-Auth"
 
-// NOTE: Rake/Rails cannot reconstruct our request URI exactly as sent, so we omit the trailing slash here
+// NOTE: Rake/Rails cannot reconstruct our request URI exactly as sent, so we omit the trailing slash here to match
 #define SERVER_POUR_REQUEST_URI "/pours/new" //!< URI to request when requesting to pour
 #define SERVER_POUR_RESULT_URI "/pours"      //!< URI to request when sending result
 #define SERVER_TEST_XAUTH_URI "/test/xauth"  //!< URI to test X-Pourlogic-Auth
@@ -63,11 +63,11 @@
 class PourLogicClient : public EthernetClient {
 
  private:
-  byte _effective_key[32]; //!< HMAC (effective) secret key
+  byte _effective_key[20]; //!< HMAC (effective) secret key
   unsigned long __id;
   
   const byte* _key() { return _effective_key; };
-  int _keySize() { return 32; };
+  int _keySize() { return 20; };
   unsigned long _id() { return __id; }
   
   //!< Initializes HMAC for client-server authentication.

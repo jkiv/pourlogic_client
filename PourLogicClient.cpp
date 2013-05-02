@@ -5,7 +5,7 @@
 #include "HexString.h"
 #include "HTTPUtil.h"
 
-#define MAX_LINE_SIZE 256       //!< Length limit to an HTTP line (in bytes)
+#define MAX_LINE_SIZE 256 //!< Length limit to an HTTP line (in bytes)
 static const char HTTP_ENDLINE[] = "\r\n";
 static const char HTTP_STATUS_OK[] = "200";
 static char line_buffer[MAX_LINE_SIZE];
@@ -20,9 +20,9 @@ PourLogicClient::PourLogicClient(unsigned long api_id, const char* api_private_k
   _nonce.begin();
   
   // Initialize key for use with HMAC
-  Sha256.init();
-  Sha256.print(api_private_key);
-  memcpy(_effective_key, Sha256.result(), _keySize());
+  Sha1.init();
+  Sha1.print(api_private_key);
+  memcpy(_effective_key, Sha1.result(), _keySize());
 }
 
 PourLogicClient::~PourLogicClient() {
@@ -37,7 +37,7 @@ unsigned long PourLogicClient::_printXPourLogicAuthHeader(Print& target) {
   bytes_sent += target.print(F(":"));
   bytes_sent += target.print(_nonce.count());
   bytes_sent += target.print(F(":"));
-  bytes_sent += target.print(bytesToHexString(Sha256.resultHmac(), _keySize()));
+  bytes_sent += target.print(bytesToHexString(Sha1.resultHmac(), _keySize()));
   bytes_sent += printHTTPEndline(target);
   
   return bytes_sent;
@@ -48,7 +48,7 @@ unsigned long PourLogicClient::_printPourRequestStatusLine(Print &target, String
 
   bytes_sent += printStatusLineHeadGet(target);
   bytes_sent += target.print(SERVER_POUR_REQUEST_URI "?" CLIENT_POUR_REQUEST_PARAM_RFID "=");
-  bytes_sent += target.print(rfid); // TODO hash rfid?
+  bytes_sent += target.print(rfid); // TODO obfuscate rfid?
   bytes_sent += printStatusLineTail(target);
   //bytes_sent += printHTTPEndline(target);
   
@@ -82,7 +82,7 @@ void PourLogicClient::_initializeAuth() {
   // .. increment counter
   _nonce.increment();
   // .. initialize Sha*
-  Sha256.initHmac(_key(), _keySize());
+  Sha1.initHmac(_key(), _keySize());
 }
 
 /*! A pour request is an HTTP GET request with the following parameters:
@@ -110,10 +110,10 @@ boolean PourLogicClient::_sendPourRequest(String const &tagData) {
   _initializeAuth();
   
   // -- Feed HMAC digest --
-  Sha256.print(_nonce.count());                 // NONCE\n
-  Sha256.print('\n');
-  _printPourRequestStatusLine(Sha256, tagData); // REQUEST LINE\n
-  Sha256.print('\n');
+  Sha1.print(_nonce.count());                 // NONCE\n
+  Sha1.print('\n');
+  _printPourRequestStatusLine(Sha1, tagData); // REQUEST LINE\n
+  Sha1.print('\n');
                                                 // empty body
   // -- done "Feed HMAC digest"
   
@@ -167,11 +167,11 @@ boolean PourLogicClient::_sendPourResult(String const &tag_data, float pour_volu
   _initializeAuth();
   
   // -- Feed HMAC digest --
-  Sha256.print(_nonce.count());
-  Sha256.print('\n');
-  _printPourResultStatusLine(Sha256);
-  Sha256.print('\n');
-  content_length += _printPourResultMessageBody(Sha256, tag_data, pour_volume);
+  Sha1.print(_nonce.count());
+  Sha1.print('\n');
+  _printPourResultStatusLine(Sha1);
+  Sha1.print('\n');
+  content_length += _printPourResultMessageBody(Sha1, tag_data, pour_volume);
   // -- done HMAC
   
   // Send request to server --
@@ -236,14 +236,14 @@ boolean PourLogicClient::_getPourRequestResponse(int& max_volume_mL)
   max_volume_mL = parseInt();
 
   // Verify HMAC (server should have same count as us)
-  Sha256.initHmac(_key(), _keySize());
-  Sha256.print(_nonce.count()); // nonce
-  Sha256.print('\n');
-  Sha256.print(HTTP_STATUS_OK); // HTTP status
-  Sha256.print('\n');
-  Sha256.print(max_volume_mL); // message body
+  Sha1.initHmac(_key(), _keySize());
+  Sha1.print(_nonce.count()); // nonce
+  Sha1.print('\n');
+  Sha1.print(HTTP_STATUS_OK); // HTTP status
+  Sha1.print('\n');
+  Sha1.print(max_volume_mL); // message body
   
-  bytesToHexString(our_hmac, Sha256.resultHmac(), _keySize());
+  bytesToHexString(our_hmac, Sha1.resultHmac(), _keySize());
  
   return message_hmac.equalsIgnoreCase(our_hmac);
 }
@@ -280,14 +280,14 @@ boolean PourLogicClient::_getPourResultResponse()
   //   (empty)
 	
   // Verify HMAC (server should have same count as us)
-  Sha256.initHmac(_key(), _keySize());
-  Sha256.print(_nonce.count()); // nonce
-  Sha256.print('\n');
-  Sha256.print(HTTP_STATUS_OK); // HTTP status
-  Sha256.print('\n');
+  Sha1.initHmac(_key(), _keySize());
+  Sha1.print(_nonce.count()); // nonce
+  Sha1.print('\n');
+  Sha1.print(HTTP_STATUS_OK); // HTTP status
+  Sha1.print('\n');
   // empty message body
 
-  return bytesToHexString(Sha256.resultHmac(), _keySize()).equalsIgnoreCase(messageHmac);
+  return bytesToHexString(Sha1.resultHmac(), _keySize()).equalsIgnoreCase(messageHmac);
 }
 
 /*!
