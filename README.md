@@ -3,6 +3,7 @@
 ## About
 
 ![Project status: hiatus](https://img.shields.io/badge/project status-abandoned-red.svg)
+
 See the [Kegbot](http://kegbot.org) for an active alternative.
 
 The PourLogic client controls access to a keg. The client relies on a server
