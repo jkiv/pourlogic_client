@@ -2,7 +2,7 @@
 
 ## About
 
-![Project status: abandoned](https://img.shields.io/badge/project status-abandoned-red.svg)
+![Project status: abandoned](https://img.shields.io/badge/project%20status-abandoned-red.svg)
 
 *See the [Kegbot](http://kegbot.org) for an active alternative.*
 
